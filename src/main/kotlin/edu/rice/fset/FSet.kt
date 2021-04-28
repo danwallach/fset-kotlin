@@ -26,7 +26,7 @@ interface FSet<E : Any> : Set<E> {
     /**
      * Adds a number of elements to the set, returning a new set. The original is unchanged.
      */
-    fun addAll(vararg elements: E): FSet<E> = addAll(elements.asIterable())
+    fun add(vararg elements: E): FSet<E> = addAll(elements.asIterable())
 
     /**
      * Subtracts the given element to the set, if it's present, returning a new set.
@@ -42,7 +42,7 @@ interface FSet<E : Any> : Set<E> {
     /**
      * Removes a number of elements from the set, returning a new set. The original is unchanged.
      */
-    fun removeAll(vararg elements: E): FSet<E> = removeAll(elements.asIterable())
+    fun remove(vararg elements: E): FSet<E> = removeAll(elements.asIterable())
 
     /**
      * Given the *hash* of the desired element, returns zero or more matching results
