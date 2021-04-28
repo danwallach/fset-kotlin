@@ -1,11 +1,17 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version "1.4.32"
-    application
+    kotlin("jvm") version "1.5.0-RC"
 }
 
-group = "me.dwallach"
+// ...
+tasks.withType<KotlinCompile>().configureEach {
+    kotlinOptions {
+        useIR = true
+    }
+}
+
+group = "edu.rice"
 version = "1.0-SNAPSHOT"
 
 repositories {
@@ -25,7 +31,8 @@ tasks.test {
 tasks.withType<KotlinCompile>() {
     kotlinOptions.jvmTarget = "1.8"
 }
-
-application {
-    mainClassName = "MainKt"
+val compileKotlin: KotlinCompile by tasks
+compileKotlin.kotlinOptions {
+    languageVersion = "1.5"
+    apiVersion = "1.5"
 }
