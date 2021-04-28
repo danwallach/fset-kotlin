@@ -2,12 +2,16 @@ package edu.rice.fset
 
 import io.kotest.core.spec.style.freeSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.arbitrary
 import io.kotest.property.arbitrary.int
 import io.kotest.property.arbitrary.list
 import io.kotest.property.arbitrary.next
 import io.kotest.property.checkAll
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 
 data class IntWithLameHash(val element: Int) {
     override fun hashCode() = element % 10
@@ -25,6 +29,8 @@ val listIntWithLameHashGen = arbitrary { rs ->
     Arb.list(intWithLameHashGen).next(rs)
 }
 
+fun <E: Any> setsEqual(a: Set<E>, b: Set<E>) : Boolean = a.containsAll(b) && b.containsAll(a)
+
 fun <E : Any> fsetTests(
     algorithm: String,
     emptyStringSet: FSet<String>,
@@ -40,7 +46,7 @@ fun <E : Any> fsetTests(
                         val desiredHash = i.hashCode()
                         val result = testMe.lookup(desiredHash).asSequence().toSet()
                         val expected = inputs.filter { it.hashCode() == desiredHash }.toSet()
-                        result shouldBe expected
+                        assertEquals(result, expected)
                     }
                 }
             }
@@ -52,7 +58,42 @@ fun <E : Any> fsetTests(
                         val desiredHash = i.hashCode()
                         val result = testMe.lookup(desiredHash).asSequence().toSet()
                         val expected = inputs.filter { it.hashCode() == desiredHash }.toSet()
-                        result shouldBe expected
+                        assertEquals(result, expected)
+                    }
+                }
+            }
+            "queries for missing values (restricted int)" {
+                checkAll(listIntWithLameHashGen, intWithLameHashGen) { inputs, other ->
+                    if (!inputs.contains(other)) {
+                        val testMe = emptyIntSet.addAll(inputs.asIterable())
+                        val results = testMe.lookup(other.hashCode()).asSequence().toList()
+                        results.forEach { i ->
+                            assertEquals(i.hashCode(), other.hashCode())
+                            assertTrue(inputs.contains(i))
+                            assertNotEquals(i, other)
+                        }
+                    }
+                }
+            }
+            "removing a value (restricted int)" {
+                checkAll(listIntWithLameHashGen, intWithLameHashGen) { inputs, other ->
+                    val testMe = emptyIntSet.addAll(inputs.asIterable())
+                    val testMePlus = testMe + other
+                    val testMinus = testMePlus - other
+
+                    // we're testing that we have the expected set behavior, and we're
+                    // exercising our equals() methods versus the setsEqual() code
+                    // above that uses Kotlin logic from Container.
+                    if(inputs.contains(other)) {
+                        setsEqual(testMe, testMePlus) shouldBe true
+                        testMe shouldBe testMePlus
+                        setsEqual(testMe, testMinus) shouldBe false
+                        testMe shouldNotBe testMinus
+                    } else {
+                        setsEqual(testMe, testMinus) shouldBe true
+                        testMe shouldBe testMinus
+                        setsEqual(testMe, testMePlus) shouldBe false
+                        testMe shouldNotBe testMePlus
                     }
                 }
             }

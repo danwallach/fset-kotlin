@@ -80,12 +80,17 @@ internal fun <E : Any> BinaryTree<E>.remove(hashValue: Int, element: E): BinaryT
             hashValue > localHashValue -> updateRight(right.remove(hashValue, element))
             else -> {
                 // If there's only one thing in the storage, then this whole node
-                // needs to go away, so we need to rotate the tree. But if there's
-                // more than one thing here, we only need to update the storage
-                // and we're still fine.
+                // needs to go away. But if there's more than one thing here, we
+                // only need to update the storage and we're still fine.
                 val revisedStorage = storage.remove(element)
                 if (revisedStorage == null) {
-                    rotateRight().remove(hashValue, element)
+                    val lEmpty = left.isEmpty()
+                    val rEmpty = right.isEmpty()
+                    when {
+                        lEmpty && rEmpty -> emptyBinaryTree()
+                        lEmpty -> rotateLeft().remove(hashValue, element)
+                        else -> rotateRight().remove(hashValue, element)
+                    }
                 } else {
                     updateStorage(revisedStorage)
                 }
@@ -155,6 +160,11 @@ internal data class BinaryTreeSet<E : Any>(val tree: BinaryTree<E>) : FSet<E> {
         BinaryTreeSet(elements.fold(tree) { t, e -> t.remove(e.hashCode(), e) })
 
     override fun lookup(hashValue: Int): Iterator<E> = tree.lookup(hashValue)
+
+    override fun toString(): String {
+        val result = tree.iterator().asSequence().joinToString(separator = ", ")
+        return "BinaryTreeSet($result)"
+    }
 }
 
 fun <E : Any> emptyBinaryTreeSet(): FSet<E> = BinaryTreeSet(emptyBinaryTree())

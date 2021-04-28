@@ -26,10 +26,14 @@ internal class NodeStorageOne<E : Any>(hashValue: Int, val element: E) : NodeSto
 internal class NodeStorageList<E : Any>(hashValue: Int, val elements: List<E>) : NodeStorage<E>(hashValue) {
     override fun equals(other: Any?): Boolean = when (other) {
         is NodeStorageOne<*> -> false
-        is NodeStorageList<*> -> other.hashValue == this.hashValue && elements.all {
-            other.elements.contains(
-                it
-            )
+        is NodeStorageList<*> ->
+            // this is O(n^2), but n is small, so we don't really care
+            other.hashValue == this.hashValue &&
+                    elements.size == other.elements.size &&
+                    elements.all {
+                        other.elements.contains(
+                            it
+                        )
         }
         else -> false
     }
