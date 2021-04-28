@@ -11,9 +11,9 @@ package edu.rice.fset
  * idea is that objects being stored in a given NodeStorage will always have the same hash, which
  * is computed externally. This allows for external code to tweak how it computes hashes.
  */
-sealed class NodeStorage<E : Any>(val hashValue: Int)
+internal sealed class NodeStorage<E : Any>(val hashValue: Int)
 
-private class NodeStorageOne<E : Any>(hashValue: Int, val element: E) : NodeStorage<E>(hashValue) {
+internal class NodeStorageOne<E : Any>(hashValue: Int, val element: E) : NodeStorage<E>(hashValue) {
     override fun equals(other: Any?) = when (other) {
         is NodeStorageList<*> -> false
         is NodeStorageOne<*> -> other.hashValue == hashValue && other.element == element
@@ -23,7 +23,7 @@ private class NodeStorageOne<E : Any>(hashValue: Int, val element: E) : NodeStor
     override fun hashCode(): Int = hashValue
 }
 
-private class NodeStorageList<E : Any>(hashValue: Int, val elements: List<E>) : NodeStorage<E>(hashValue) {
+internal class NodeStorageList<E : Any>(hashValue: Int, val elements: List<E>) : NodeStorage<E>(hashValue) {
     override fun equals(other: Any?): Boolean = when (other) {
         is NodeStorageOne<*> -> false
         is NodeStorageList<*> -> other.hashValue == this.hashValue && elements.all {
@@ -37,7 +37,7 @@ private class NodeStorageList<E : Any>(hashValue: Int, val elements: List<E>) : 
     override fun hashCode(): Int = hashValue
 }
 
-fun <E : Any> NodeStorage<E>.insert(element: E): NodeStorage<E> =
+internal fun <E : Any> NodeStorage<E>.insert(element: E): NodeStorage<E> =
     if (this.contains(element)) {
         this
     } else {
@@ -47,7 +47,7 @@ fun <E : Any> NodeStorage<E>.insert(element: E): NodeStorage<E> =
         }
     }
 
-fun <E : Any> nodeStorageOf(
+internal fun <E : Any> nodeStorageOf(
     hashValue: Int,
     element: E,
     priorStorage: NodeStorage<E>? = null
@@ -58,12 +58,12 @@ fun <E : Any> nodeStorageOf(
         priorStorage.insert(element)
     }
 
-fun <E : Any> NodeStorage<E>.contains(element: E): Boolean = when (this) {
+internal fun <E : Any> NodeStorage<E>.contains(element: E): Boolean = when (this) {
     is NodeStorageOne -> this.element == element
     is NodeStorageList -> this.elements.contains(element)
 }
 
-fun <E : Any> NodeStorage<E>.remove(element: E): NodeStorage<E>? = when (this) {
+internal fun <E : Any> NodeStorage<E>.remove(element: E): NodeStorage<E>? = when (this) {
     is NodeStorageOne -> if (this.element == element) null else this
     is NodeStorageList -> {
         val filteredList = elements.filter { it != element }
@@ -75,14 +75,20 @@ fun <E : Any> NodeStorage<E>.remove(element: E): NodeStorage<E>? = when (this) {
     }
 }
 
-fun <E : Any> NodeStorage<E>.asSequence() = when (this) {
+internal fun <E : Any> NodeStorage<E>.asSequence() = when (this) {
     is NodeStorageOne -> sequenceOf(element)
     is NodeStorageList -> elements.asSequence()
 }
 
-fun <E : Any> NodeStorage<E>.iterator() = this.asSequence().iterator()
+internal fun <E : Any> NodeStorage<E>.iterator() = this.asSequence().iterator()
 
-fun <E : Any> NodeStorage<E>.isSingleton() = when (this) {
+internal fun <E : Any> NodeStorage<E>.isSingleton() = when (this) {
     is NodeStorageOne -> true
     is NodeStorageList -> false
 }
+
+internal val <E : Any> NodeStorage<E>.size: Int
+    get() = when (this) {
+        is NodeStorageOne -> 1
+        is NodeStorageList -> elements.size
+    }
