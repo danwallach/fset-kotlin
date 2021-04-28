@@ -25,8 +25,11 @@ internal data class BinaryTreeNode<E : Any>(
         else -> false
     }
 
-    // a hack, but not often used so good enough
-    override fun hashCode() = storageSequence().hashCode()
+    // Notable: Sequence doesn't give us a useful hash function, but List does,
+    // so converting to a list makes this work. This whole thing is more inefficient
+    // than something we might cook up by hand, but it's probably not common that
+    // we'll be building a set of sets, which is when this might come into play.
+    override fun hashCode() = storageSequence().toList().hashCode()
 }
 
 internal val <E : Any> BinaryTree<E>.size: Int

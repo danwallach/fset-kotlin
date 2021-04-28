@@ -29,12 +29,12 @@ internal class NodeStorageList<E : Any>(hashValue: Int, val elements: List<E>) :
         is NodeStorageList<*> ->
             // this is O(n^2), but n is small, so we don't really care
             other.hashValue == this.hashValue &&
-                    elements.size == other.elements.size &&
-                    elements.all {
-                        other.elements.contains(
-                            it
-                        )
-        }
+                elements.size == other.elements.size &&
+                elements.all {
+                    other.elements.contains(
+                        it
+                    )
+                }
         else -> false
     }
 

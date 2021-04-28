@@ -29,7 +29,7 @@ val listIntWithLameHashGen = arbitrary { rs ->
     Arb.list(intWithLameHashGen).next(rs)
 }
 
-fun <E: Any> setsEqual(a: Set<E>, b: Set<E>) : Boolean = a.containsAll(b) && b.containsAll(a)
+fun <E : Any> setsEqual(a: Set<E>, b: Set<E>): Boolean = a.containsAll(b) && b.containsAll(a)
 
 fun <E : Any> fsetTests(
     algorithm: String,
@@ -75,7 +75,7 @@ fun <E : Any> fsetTests(
                     }
                 }
             }
-            "removing a value (restricted int)" {
+            "removing a value and set equality (restricted int)" {
                 checkAll(listIntWithLameHashGen, intWithLameHashGen) { inputs, other ->
                     val testMe = emptyIntSet.addAll(inputs.asIterable())
                     val testMePlus = testMe + other
@@ -84,14 +84,16 @@ fun <E : Any> fsetTests(
                     // we're testing that we have the expected set behavior, and we're
                     // exercising our equals() methods versus the setsEqual() code
                     // above that uses Kotlin logic from Container.
-                    if(inputs.contains(other)) {
+                    if (inputs.contains(other)) {
                         setsEqual(testMe, testMePlus) shouldBe true
                         testMe shouldBe testMePlus
+                        testMe.hashCode() shouldBe testMePlus.hashCode()
                         setsEqual(testMe, testMinus) shouldBe false
                         testMe shouldNotBe testMinus
                     } else {
                         setsEqual(testMe, testMinus) shouldBe true
                         testMe shouldBe testMinus
+                        testMe.hashCode() shouldBe testMinus.hashCode()
                         setsEqual(testMe, testMePlus) shouldBe false
                         testMe shouldNotBe testMePlus
                     }
