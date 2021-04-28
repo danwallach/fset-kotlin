@@ -1,4 +1,4 @@
-package edu.rice
+package edu.rice.fset
 
 /**
  * General-purpose interface for a "functional" set over objects, assuming that the objects

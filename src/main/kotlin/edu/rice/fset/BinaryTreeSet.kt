@@ -1,4 +1,4 @@
-package edu.rice
+package edu.rice.fset
 
 /**
  * Another slow implementation of functional sets, based on unbalanced binary trees, but
@@ -107,7 +107,8 @@ private fun <E: Any> BinaryTree<E>.rotateRight(): BinaryTree<E> = when(this) {
             BinaryTreeNode(
                 left.storage,
                 left.left,
-                BinaryTreeNode(this.storage, left.right, this.right))
+                BinaryTreeNode(this.storage, left.right, this.right)
+            )
     }
 }
 

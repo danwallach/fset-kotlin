@@ -1,4 +1,4 @@
-package edu.rice
+package edu.rice.fset
 
 import kotlin.collections.HashSet as HashSetMutable
 
