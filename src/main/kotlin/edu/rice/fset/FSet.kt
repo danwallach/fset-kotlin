@@ -7,7 +7,7 @@ package edu.rice.fset
  * Also, multiple objects having the same hash value are supported, but if too many objects
  * share the same hash, performance might well degrade.
  */
-interface FSet<E: Any>: Set<E> {
+interface FSet<E : Any> : Set<E> {
     // TODO: add covariance/contravariance support (makes things uglier)
 
     /**

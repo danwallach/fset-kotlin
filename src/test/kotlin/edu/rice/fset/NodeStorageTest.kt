@@ -1,13 +1,11 @@
 package edu.rice.fset
 
 import io.kotest.core.spec.style.FreeSpec
-import io.kotest.matchers.collections.shouldBeOneOf
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
 import io.kotest.property.checkAll
 import io.kotest.property.forAll
 
-class NodeStorageTest: FreeSpec({
+class NodeStorageTest : FreeSpec({
     "NodeStorageOne" - {
         "remove elem gives null" {
             checkAll<String> { s -> nodeStorageOf(s.hashCode(), s).remove(s) shouldBe null }
@@ -20,7 +18,7 @@ class NodeStorageTest: FreeSpec({
         }
         "remove non-present elem is no-op" {
             checkAll<String, String> { s1, s2 ->
-                if(s1 != s2) {
+                if (s1 != s2) {
                     val storage = nodeStorageOf(s1.hashCode(), s1)
                     storage.remove(s2) shouldBe storage
                 }

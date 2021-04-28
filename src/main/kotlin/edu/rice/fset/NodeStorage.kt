@@ -6,21 +6,24 @@ package edu.rice.fset
  * in the more common case of a single object, we don't want to pay that overhead. This code
  * will be helpful for multiple implementations. Of note, we're saving the hash value so we never
  * have to recompute it.
+ *
+ * Also of note: this code never calls the hashCode() method on anything being stored here. The
+ * idea is that objects being stored in a given NodeStorage will always have the same hash, which
+ * is computed externally. This allows for external code to tweak how it computes hashes.
  */
-sealed interface NodeStorage<E : Any>
+sealed class NodeStorage<E : Any>(val hashValue: Int)
 
-private data class NodeStorageOne<E : Any>(val hashValue: Int, val element: E) : NodeStorage<E> {
+private class NodeStorageOne<E : Any>(hashValue: Int, val element: E) : NodeStorage<E>(hashValue) {
     override fun equals(other: Any?) = when (other) {
         is NodeStorageList<*> -> false
         is NodeStorageOne<*> -> other.hashValue == hashValue && other.element == element
         else -> false
     }
 
-    override fun hashCode() = hashValue
+    override fun hashCode(): Int = hashValue
 }
 
-private data class NodeStorageList<E : Any>(val hashValue: Int, val elements: List<E>) :
-    NodeStorage<E> {
+private class NodeStorageList<E : Any>(hashValue: Int, val elements: List<E>) : NodeStorage<E>(hashValue) {
     override fun equals(other: Any?): Boolean = when (other) {
         is NodeStorageOne<*> -> false
         is NodeStorageList<*> -> other.hashValue == this.hashValue && elements.all {
@@ -31,8 +34,7 @@ private data class NodeStorageList<E : Any>(val hashValue: Int, val elements: Li
         else -> false
     }
 
-    // don't try to be fancy here: this works
-    override fun hashCode() = hashValue
+    override fun hashCode(): Int = hashValue
 }
 
 fun <E : Any> NodeStorage<E>.insert(element: E): NodeStorage<E> =

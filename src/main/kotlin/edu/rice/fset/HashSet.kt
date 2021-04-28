@@ -53,4 +53,3 @@ fun <E : Any> emptySlowHashSet(): FSet<E> = emptyHashSetSingleton as FSet<E>
 /** Used to ensure that all "slow" hash sets with no elements become the singleton empty set. */
 private fun <E : Any> singletonEmptySetFrom(input: FSet<E>): FSet<E> =
     if (input.isEmpty()) emptySlowHashSet<E>() else input
-
