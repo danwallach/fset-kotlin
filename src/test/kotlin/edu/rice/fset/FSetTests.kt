@@ -9,12 +9,12 @@ import io.kotest.property.arbitrary.int
 import io.kotest.property.arbitrary.list
 import io.kotest.property.arbitrary.next
 import io.kotest.property.checkAll
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
-import kotlin.test.assertTrue
 
 data class IntWithLameHash(val element: Int) {
+    // Exercises that our set implementations still work as sets, even when the underlying
+    // hash function gets tons of collisions.
     override fun hashCode() = element % 10
+
     override fun equals(other: Any?) = when (other) {
         is IntWithLameHash -> element == other.element
         else -> false
@@ -41,11 +41,10 @@ fun fsetTests(
             checkAll<List<String>> { inputs ->
                 val testMe = emptyStringSet.addAll(inputs.asIterable())
                 inputs.forEach { i ->
-                    // hash collisions are basically never going to happen here
-                    val desiredHash = i.hashCode()
-                    val result = testMe.lookup(desiredHash).asSequence().toSet()
-                    val expected = inputs.filter { it.hashCode() == desiredHash }.toSet()
-                    assertEquals(result, expected)
+                    val result = testMe.lookup(i)
+                    result shouldNotBe null
+                    val expected = inputs.filter { it == i }.toSet()
+                    setOf(result) shouldBe expected
                 }
             }
         }
@@ -53,24 +52,21 @@ fun fsetTests(
             checkAll(listIntWithLameHashGen) { inputs ->
                 val testMe = emptyIntSet.addAll(inputs.asIterable())
                 inputs.forEach { i ->
-                    // hash collisions are going to happen all the time here
-                    val desiredHash = i.hashCode()
-                    val result = testMe.lookup(desiredHash).asSequence().toSet()
-                    val expected = inputs.filter { it.hashCode() == desiredHash }.toSet()
-                    assertEquals(result, expected)
+                    val result = testMe.lookup(i)
+                    result shouldNotBe null
+                    val expected = inputs.filter { it == i }.toSet()
+                    setOf(result) shouldBe expected
                 }
             }
         }
         "queries for missing values (restricted int)" {
             checkAll(listIntWithLameHashGen, intWithLameHashGen) { inputs, other ->
-                if (!inputs.contains(other)) {
-                    val testMe = emptyIntSet.addAll(inputs.asIterable())
-                    val results = testMe.lookup(other.hashCode()).asSequence().toList()
-                    results.forEach { i ->
-                        assertEquals(i.hashCode(), other.hashCode())
-                        assertTrue(inputs.contains(i))
-                        assertNotEquals(i, other)
-                    }
+                val testMe = emptyIntSet.addAll(inputs.asIterable())
+                val result = testMe.lookup(other)
+                if (inputs.contains(other)) {
+                    result shouldBe other
+                } else {
+                    result shouldBe null
                 }
             }
         }
@@ -80,9 +76,12 @@ fun fsetTests(
                 val testMePlus = testMe + other
                 val testMinus = testMePlus - other
 
-                // we're testing that we have the expected set behavior, and we're
+                // We're testing that we have the expected set behavior, and we're
                 // exercising our equals() methods versus the setsEqual() code
-                // above that uses Kotlin logic from Container.
+                // above that uses Kotlin logic from Container. (Our own equals()
+                // methods can take advantage of internal structure and hopefully
+                // run faster.)
+
                 if (inputs.contains(other)) {
                     setsEqual(testMe, testMePlus) shouldBe true
                     testMe shouldBe testMePlus

@@ -102,14 +102,14 @@ internal fun <E : Any> BinaryTree<E>.remove(hashValue: Int, element: E): BinaryT
     }
 }
 
-internal fun <E : Any> BinaryTree<E>.lookup(hashValue: Int): Iterator<E> = when (this) {
-    is EmptyBinaryTree -> sequenceOf<E>().iterator()
+internal fun <E : Any> BinaryTree<E>.lookup(hashValue: Int): Sequence<E> = when (this) {
+    is EmptyBinaryTree -> sequenceOf()
     is BinaryTreeNode -> {
         val localHashValue = storage.hashCode()
         when {
             hashValue < localHashValue -> left.lookup(hashValue)
             hashValue > localHashValue -> right.lookup(hashValue)
-            else -> storage.iterator()
+            else -> storage.asSequence()
         }
     }
 }
@@ -162,7 +162,10 @@ internal data class BinaryTreeSet<E : Any>(val tree: BinaryTree<E>) : FSet<E> {
     override fun removeAll(elements: Iterable<E>): FSet<E> =
         BinaryTreeSet(elements.fold(tree) { t, e -> t.remove(e.hashCode(), e) })
 
-    override fun lookup(hashValue: Int): Iterator<E> = tree.lookup(hashValue)
+    override fun lookup(element: E): E? =
+        tree.lookup(element.hashCode())
+            .filter { it == element }
+            .firstOrNull()
 
     override fun toString(): String {
         val result = tree.iterator().asSequence().joinToString(separator = ", ")
@@ -176,4 +179,4 @@ fun <E : Any> binaryTreeSetOf(vararg elements: E): FSet<E> =
     elements.asIterable().toBinaryTreeSet()
 
 fun <E : Any> Iterable<E>.toBinaryTreeSet(): FSet<E> =
-    BinaryTreeSet(this.fold(emptyBinaryTree()) { t, e -> t.insert(e.hashCode(), e) })
+    emptyBinaryTreeSet<E>().addAll(this)

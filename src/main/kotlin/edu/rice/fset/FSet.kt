@@ -45,15 +45,13 @@ interface FSet<E : Any> : Set<E> {
     fun remove(vararg elements: E): FSet<E> = removeAll(elements.asIterable())
 
     /**
-     * Given the *hash* of the desired element, returns zero or more matching results
-     * as an iterator.
+     * Given a desired element, returns that element (or whatever we have that's "equal" to it),
+     * or null if it's absent.
      */
-    fun lookup(hashValue: Int): Iterator<E>
+    fun lookup(element: E): E?
 
     override fun contains(element: E): Boolean =
-        lookup(element.hashCode())
-            .asSequence()
-            .firstOrNull { it == element } != null
+        lookup(element) != null
 
     override fun containsAll(elements: Collection<E>): Boolean =
         elements.all { contains(it) }

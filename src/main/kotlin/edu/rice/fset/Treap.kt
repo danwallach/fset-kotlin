@@ -153,14 +153,14 @@ internal fun <E : Any> Treap<E>.remove(hashValue: Int, element: E): Treap<E> = w
     }
 }
 
-internal fun <E : Any> Treap<E>.lookup(hashValue: Int): Iterator<E> = when (this) {
-    is EmptyTreap -> sequenceOf<E>().iterator()
+internal fun <E : Any> Treap<E>.lookup(hashValue: Int): Sequence<E> = when (this) {
+    is EmptyTreap -> sequenceOf()
     is TreapNode -> {
         val localHashValue = storage.hashCode()
         when {
             hashValue < localHashValue -> left.lookup(hashValue)
             hashValue > localHashValue -> right.lookup(hashValue)
-            else -> storage.iterator()
+            else -> storage.asSequence()
         }
     }
 }
@@ -213,7 +213,10 @@ internal data class TreapSet<E : Any>(val tree: Treap<E>) : FSet<E> {
     override fun removeAll(elements: Iterable<E>): FSet<E> =
         TreapSet(elements.fold(tree) { t, e -> t.remove(e.hashCode(), e) })
 
-    override fun lookup(hashValue: Int): Iterator<E> = tree.lookup(hashValue)
+    override fun lookup(element: E): E? =
+        tree.lookup(element.hashCode())
+            .filter { it == element }
+            .firstOrNull()
 
     override fun toString(): String {
         val result = tree.iterator().asSequence().joinToString(separator = ", ")
@@ -227,4 +230,4 @@ fun <E : Any> treapSetOf(vararg elements: E): FSet<E> =
     elements.asIterable().toTreapSet()
 
 fun <E : Any> Iterable<E>.toTreapSet(): FSet<E> =
-    TreapSet(this.fold(emptyTreap()) { t, e -> t.insert(e.hashCode(), e) })
+    emptyTreapSet<E>().addAll(this)
