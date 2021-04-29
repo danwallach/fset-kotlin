@@ -24,7 +24,7 @@ internal class EmptyTreap<E : Any> : Treap<E> {
     override fun hashCode() = 1
 }
 
-internal data class TreapNode<E : Any> (
+internal data class TreapNode<E : Any>(
     val storage: NodeStorage<E>,
     val left: Treap<E>,
     val right: Treap<E>
@@ -138,7 +138,8 @@ internal fun <E : Any> Treap<E>.remove(hashValue: Int, element: E): Treap<E> = w
                     val lEmpty = left.isEmpty()
                     val rEmpty = right.isEmpty()
                     val lHash = if (lEmpty) Int.MAX_VALUE else (left as TreapNode).storage.hashValue
-                    val rHash = if (rEmpty) Int.MAX_VALUE else (right as TreapNode).storage.hashValue
+                    val rHash =
+                        if (rEmpty) Int.MAX_VALUE else (right as TreapNode).storage.hashValue
                     when {
                         lEmpty && rEmpty -> emptyTreap()
                         lEmpty -> rotateLeft().remove(hashValue, element)

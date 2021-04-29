@@ -134,5 +134,8 @@ fun main() {
     println("Searching for some big primes")
     val primes = findOurPrimes()
     println("Big primes: " + primes.joinToString(separator = ", "))
-    println("Big primes (as signed 32-bit): " + primes.map { it.toInt() }.joinToString(separator = ", "))
+    println(
+        "Big primes (as signed 32-bit): " + primes.map { it.toInt() }
+            .joinToString(separator = ", ")
+    )
 }

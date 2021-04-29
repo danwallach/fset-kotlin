@@ -23,7 +23,8 @@ internal class NodeStorageOne<E : Any>(hashValue: Int, val element: E) : NodeSto
     override fun hashCode(): Int = hashValue
 }
 
-internal class NodeStorageList<E : Any>(hashValue: Int, val elements: List<E>) : NodeStorage<E>(hashValue) {
+internal class NodeStorageList<E : Any>(hashValue: Int, val elements: List<E>) :
+    NodeStorage<E>(hashValue) {
     override fun equals(other: Any?): Boolean = when (other) {
         is NodeStorageOne<*> -> false
         is NodeStorageList<*> ->

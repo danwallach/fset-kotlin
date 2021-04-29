@@ -11,7 +11,12 @@ class NodeStorageTest : FreeSpec({
             checkAll<String> { s -> nodeStorageOf(s.hashCode(), s).remove(s) shouldBe null }
         }
         "simple equality" {
-            checkAll<String> { s -> nodeStorageOf(s.hashCode(), s) shouldBe nodeStorageOf(s.hashCode(), s) }
+            checkAll<String> { s ->
+                nodeStorageOf(
+                    s.hashCode(),
+                    s
+                ) shouldBe nodeStorageOf(s.hashCode(), s)
+            }
         }
         "singleton" {
             forAll<String> { s -> nodeStorageOf(s.hashCode(), s).isSingleton() }
@@ -28,7 +33,12 @@ class NodeStorageTest : FreeSpec({
             forAll<String> { s -> nodeStorageOf(s.hashCode(), s).contains(s) }
         }
         "one-elem contains doesn't contain other element" {
-            forAll<String, String> { s1, s2 -> s1 == s2 || !nodeStorageOf(s1.hashCode(), s1).contains(s2) }
+            forAll<String, String> { s1, s2 ->
+                s1 == s2 || !nodeStorageOf(
+                    s1.hashCode(),
+                    s1
+                ).contains(s2)
+            }
         }
         "iterator" {
             forAll<String> { s -> nodeStorageOf(s.hashCode(), s).iterator().next() == s }

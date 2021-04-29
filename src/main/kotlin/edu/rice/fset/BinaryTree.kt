@@ -62,50 +62,52 @@ internal fun <E : Any> BinaryTreeNode<E>.rotateLeft(): BinaryTree<E> = when (rig
     is BinaryTreeNode -> right.updateLeft(this.updateRight(right.left))
 }
 
-internal fun <E : Any> BinaryTree<E>.insert(hashValue: Int, element: E): BinaryTree<E> = when (this) {
-    is EmptyBinaryTree -> BinaryTreeNode(nodeStorageOf(hashValue, element), this, this)
-    is BinaryTreeNode -> {
-        val localHashValue = storage.hashCode()
-        when {
-            hashValue < localHashValue -> updateLeft(left.insert(hashValue, element))
-            hashValue > localHashValue -> updateRight(right.insert(hashValue, element))
-            else -> updateStorage(storage.insert(element))
+internal fun <E : Any> BinaryTree<E>.insert(hashValue: Int, element: E): BinaryTree<E> =
+    when (this) {
+        is EmptyBinaryTree -> BinaryTreeNode(nodeStorageOf(hashValue, element), this, this)
+        is BinaryTreeNode -> {
+            val localHashValue = storage.hashCode() // already has the familyHash inside
+            when {
+                hashValue < localHashValue -> updateLeft(left.insert(hashValue, element))
+                hashValue > localHashValue -> updateRight(right.insert(hashValue, element))
+                else -> updateStorage(storage.insert(element))
+            }
         }
     }
-}
 
-internal fun <E : Any> BinaryTree<E>.remove(hashValue: Int, element: E): BinaryTree<E> = when (this) {
-    is EmptyBinaryTree -> this // nothing to remove!
-    is BinaryTreeNode -> {
-        val localHashValue = storage.hashCode()
-        when {
-            hashValue < localHashValue -> updateLeft(left.remove(hashValue, element))
-            hashValue > localHashValue -> updateRight(right.remove(hashValue, element))
-            else -> {
-                // If there's only one thing in the storage, then this whole node
-                // needs to go away. But if there's more than one thing here, we
-                // only need to update the storage and we're still fine.
-                val revisedStorage = storage.remove(element)
-                if (revisedStorage == null) {
-                    val lEmpty = left.isEmpty()
-                    val rEmpty = right.isEmpty()
-                    when {
-                        lEmpty && rEmpty -> emptyBinaryTree()
-                        lEmpty -> rotateLeft().remove(hashValue, element)
-                        else -> rotateRight().remove(hashValue, element)
+internal fun <E : Any> BinaryTree<E>.remove(hashValue: Int, element: E): BinaryTree<E> =
+    when (this) {
+        is EmptyBinaryTree -> this // nothing to remove!
+        is BinaryTreeNode -> {
+            val localHashValue = storage.hashCode() // already has the familyHash inside
+            when {
+                hashValue < localHashValue -> updateLeft(left.remove(hashValue, element))
+                hashValue > localHashValue -> updateRight(right.remove(hashValue, element))
+                else -> {
+                    // If there's only one thing in the storage, then this whole node
+                    // needs to go away. But if there's more than one thing here, we
+                    // only need to update the storage and we're still fine.
+                    val revisedStorage = storage.remove(element)
+                    if (revisedStorage == null) {
+                        val lEmpty = left.isEmpty()
+                        val rEmpty = right.isEmpty()
+                        when {
+                            lEmpty && rEmpty -> emptyBinaryTree()
+                            lEmpty -> rotateLeft().remove(hashValue, element)
+                            else -> rotateRight().remove(hashValue, element)
+                        }
+                    } else {
+                        updateStorage(revisedStorage)
                     }
-                } else {
-                    updateStorage(revisedStorage)
                 }
             }
         }
     }
-}
 
 internal fun <E : Any> BinaryTree<E>.lookup(hashValue: Int): Sequence<E> = when (this) {
     is EmptyBinaryTree -> sequenceOf()
     is BinaryTreeNode -> {
-        val localHashValue = storage.hashCode()
+        val localHashValue = storage.hashCode() // already has the familyHash inside
         when {
             hashValue < localHashValue -> left.lookup(hashValue)
             hashValue > localHashValue -> right.lookup(hashValue)
@@ -148,19 +150,19 @@ internal data class BinaryTreeSet<E : Any>(val tree: BinaryTree<E>) : FSet<E> {
     override fun iterator() = tree.iterator()
 
     override fun plus(element: E) =
-        BinaryTreeSet(tree.insert(element.hashCode(), element))
+        BinaryTreeSet(tree.insert(element.familyHash1(), element))
 
     override fun addAll(elements: Iterable<E>) =
-        BinaryTreeSet(elements.fold(tree) { t, e -> t.insert(e.hashCode(), e) })
+        BinaryTreeSet(elements.fold(tree) { t, e -> t.insert(e.familyHash1(), e) })
 
     override fun minus(element: E) =
-        BinaryTreeSet(tree.remove(element.hashCode(), element))
+        BinaryTreeSet(tree.remove(element.familyHash1(), element))
 
     override fun removeAll(elements: Iterable<E>) =
-        BinaryTreeSet(elements.fold(tree) { t, e -> t.remove(e.hashCode(), e) })
+        BinaryTreeSet(elements.fold(tree) { t, e -> t.remove(e.familyHash1(), e) })
 
     override fun lookup(element: E) =
-        tree.lookup(element.hashCode())
+        tree.lookup(element.familyHash1())
             .filter { it == element }
             .firstOrNull()
 
