@@ -51,13 +51,13 @@ internal fun <E : Any> Treap<E>.isEmpty() = when (this) {
     is TreapNode -> false
 }
 
-internal fun <E : Any> TreapNode<E>.updateLeft(newLeft: Treap<E>): TreapNode<E> =
+internal fun <E : Any> TreapNode<E>.updateLeft(newLeft: Treap<E>) =
     TreapNode(storage, newLeft, right)
 
-internal fun <E : Any> TreapNode<E>.updateRight(newRight: Treap<E>): TreapNode<E> =
+internal fun <E : Any> TreapNode<E>.updateRight(newRight: Treap<E>) =
     TreapNode(storage, left, newRight)
 
-internal fun <E : Any> TreapNode<E>.updateStorage(newStorage: NodeStorage<E>): TreapNode<E> =
+internal fun <E : Any> TreapNode<E>.updateStorage(newStorage: NodeStorage<E>) =
     TreapNode(newStorage, left, right)
 
 internal fun <E : Any> TreapNode<E>.rotateRight(): Treap<E> = when (left) {
@@ -170,9 +170,6 @@ internal val emptyTreapSingleton: EmptyTreap<Any> = EmptyTreap()
 @Suppress("UNCHECKED_CAST")
 internal fun <E : Any> emptyTreap(): Treap<E> = emptyTreapSingleton as Treap<E>
 
-internal fun <E : Any> treapOf(vararg elements: E): Treap<E> =
-    elements.fold(emptyTreap<E>()) { t, e -> t.insert(e.hashCode(), e) }
-
 /** Guarantees ordering of hash values, but no guarantees of ordering within a NodeStorage */
 internal fun <E : Any> Treap<E>.storageSequence(): Sequence<NodeStorage<E>> = when (this) {
     is EmptyTreap -> sequenceOf()
@@ -181,7 +178,7 @@ internal fun <E : Any> Treap<E>.storageSequence(): Sequence<NodeStorage<E>> = wh
 }
 
 /** Warning: no ordering guarantees for objects with equal hashcodes */
-internal fun <E : Any> Treap<E>.iterator(): Iterator<E> =
+internal fun <E : Any> Treap<E>.iterator() =
     this.storageSequence().flatMap { it.asSequence() }.iterator()
 
 // /////////// Now, a binary tree "set" from the binary tree
@@ -201,19 +198,19 @@ internal data class TreapSet<E : Any>(val tree: Treap<E>) : FSet<E> {
 
     override fun iterator() = tree.iterator()
 
-    override fun plus(element: E): FSet<E> =
+    override fun plus(element: E) =
         TreapSet(tree.insert(element.hashCode(), element))
 
-    override fun addAll(elements: Iterable<E>): FSet<E> =
+    override fun addAll(elements: Iterable<E>) =
         TreapSet(elements.fold(tree) { t, e -> t.insert(e.hashCode(), e) })
 
-    override fun minus(element: E): FSet<E> =
+    override fun minus(element: E) =
         TreapSet(tree.remove(element.hashCode(), element))
 
-    override fun removeAll(elements: Iterable<E>): FSet<E> =
+    override fun removeAll(elements: Iterable<E>) =
         TreapSet(elements.fold(tree) { t, e -> t.remove(e.hashCode(), e) })
 
-    override fun lookup(element: E): E? =
+    override fun lookup(element: E) =
         tree.lookup(element.hashCode())
             .filter { it == element }
             .firstOrNull()
@@ -226,8 +223,6 @@ internal data class TreapSet<E : Any>(val tree: Treap<E>) : FSet<E> {
 
 fun <E : Any> emptyTreapSet(): FSet<E> = TreapSet(emptyTreap())
 
-fun <E : Any> treapSetOf(vararg elements: E): FSet<E> =
-    elements.asIterable().toTreapSet()
+fun <E : Any> treapSetOf(vararg elements: E) = elements.asIterable().toTreapSet()
 
-fun <E : Any> Iterable<E>.toTreapSet(): FSet<E> =
-    emptyTreapSet<E>().addAll(this)
+fun <E : Any> Iterable<E>.toTreapSet() = emptyTreapSet<E>().addAll(this)

@@ -43,13 +43,13 @@ internal fun <E : Any> BinaryTree<E>.isEmpty() = when (this) {
     is BinaryTreeNode -> false
 }
 
-internal fun <E : Any> BinaryTreeNode<E>.updateLeft(newLeft: BinaryTree<E>): BinaryTreeNode<E> =
+internal fun <E : Any> BinaryTreeNode<E>.updateLeft(newLeft: BinaryTree<E>) =
     BinaryTreeNode(storage, newLeft, right)
 
-internal fun <E : Any> BinaryTreeNode<E>.updateRight(newRight: BinaryTree<E>): BinaryTreeNode<E> =
+internal fun <E : Any> BinaryTreeNode<E>.updateRight(newRight: BinaryTree<E>) =
     BinaryTreeNode(storage, left, newRight)
 
-internal fun <E : Any> BinaryTreeNode<E>.updateStorage(newStorage: NodeStorage<E>): BinaryTreeNode<E> =
+internal fun <E : Any> BinaryTreeNode<E>.updateStorage(newStorage: NodeStorage<E>) =
     BinaryTreeNode(newStorage, left, right)
 
 internal fun <E : Any> BinaryTreeNode<E>.rotateRight(): BinaryTree<E> = when (left) {
@@ -119,9 +119,6 @@ internal val emptyTreeSingleton: EmptyBinaryTree<Any> = EmptyBinaryTree()
 @Suppress("UNCHECKED_CAST")
 internal fun <E : Any> emptyBinaryTree(): BinaryTree<E> = emptyTreeSingleton as BinaryTree<E>
 
-internal fun <E : Any> binaryTreeOf(vararg elements: E): BinaryTree<E> =
-    elements.fold(emptyBinaryTree<E>()) { t, e -> t.insert(e.hashCode(), e) }
-
 /** Guarantees ordering of hash values, but no guarantees of ordering within a NodeStorage */
 internal fun <E : Any> BinaryTree<E>.storageSequence(): Sequence<NodeStorage<E>> = when (this) {
     is EmptyBinaryTree -> sequenceOf()
@@ -130,7 +127,7 @@ internal fun <E : Any> BinaryTree<E>.storageSequence(): Sequence<NodeStorage<E>>
 }
 
 /** Warning: no ordering guarantees for objects with equal hashcodes */
-internal fun <E : Any> BinaryTree<E>.iterator(): Iterator<E> =
+internal fun <E : Any> BinaryTree<E>.iterator() =
     this.storageSequence().flatMap { it.asSequence() }.iterator()
 
 // /////////// Now, a binary tree "set" from the binary tree
@@ -150,19 +147,19 @@ internal data class BinaryTreeSet<E : Any>(val tree: BinaryTree<E>) : FSet<E> {
 
     override fun iterator() = tree.iterator()
 
-    override fun plus(element: E): FSet<E> =
+    override fun plus(element: E) =
         BinaryTreeSet(tree.insert(element.hashCode(), element))
 
-    override fun addAll(elements: Iterable<E>): FSet<E> =
+    override fun addAll(elements: Iterable<E>) =
         BinaryTreeSet(elements.fold(tree) { t, e -> t.insert(e.hashCode(), e) })
 
-    override fun minus(element: E): FSet<E> =
+    override fun minus(element: E) =
         BinaryTreeSet(tree.remove(element.hashCode(), element))
 
-    override fun removeAll(elements: Iterable<E>): FSet<E> =
+    override fun removeAll(elements: Iterable<E>) =
         BinaryTreeSet(elements.fold(tree) { t, e -> t.remove(e.hashCode(), e) })
 
-    override fun lookup(element: E): E? =
+    override fun lookup(element: E) =
         tree.lookup(element.hashCode())
             .filter { it == element }
             .firstOrNull()
@@ -175,8 +172,6 @@ internal data class BinaryTreeSet<E : Any>(val tree: BinaryTree<E>) : FSet<E> {
 
 fun <E : Any> emptyBinaryTreeSet(): FSet<E> = BinaryTreeSet(emptyBinaryTree())
 
-fun <E : Any> binaryTreeSetOf(vararg elements: E): FSet<E> =
-    elements.asIterable().toBinaryTreeSet()
+fun <E : Any> binaryTreeSetOf(vararg elements: E) = elements.asIterable().toBinaryTreeSet()
 
-fun <E : Any> Iterable<E>.toBinaryTreeSet(): FSet<E> =
-    emptyBinaryTreeSet<E>().addAll(this)
+fun <E : Any> Iterable<E>.toBinaryTreeSet() = emptyBinaryTreeSet<E>().addAll(this)

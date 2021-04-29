@@ -26,7 +26,7 @@ interface FSet<E : Any> : Set<E> {
     /**
      * Adds a number of elements to the set, returning a new set. The original is unchanged.
      */
-    fun add(vararg elements: E): FSet<E> = addAll(elements.asIterable())
+    fun add(vararg elements: E) = addAll(elements.asIterable())
 
     /**
      * Subtracts the given element to the set, if it's present, returning a new set.
@@ -42,7 +42,7 @@ interface FSet<E : Any> : Set<E> {
     /**
      * Removes a number of elements from the set, returning a new set. The original is unchanged.
      */
-    fun remove(vararg elements: E): FSet<E> = removeAll(elements.asIterable())
+    fun remove(vararg elements: E) = removeAll(elements.asIterable())
 
     /**
      * Given a desired element, returns that element (or whatever we have that's "equal" to it),
@@ -50,9 +50,7 @@ interface FSet<E : Any> : Set<E> {
      */
     fun lookup(element: E): E?
 
-    override fun contains(element: E): Boolean =
-        lookup(element) != null
+    override fun contains(element: E) = lookup(element) != null
 
-    override fun containsAll(elements: Collection<E>): Boolean =
-        elements.all { contains(it) }
+    override fun containsAll(elements: Collection<E>) = elements.all { contains(it) }
 }
