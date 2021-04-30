@@ -1,12 +1,13 @@
 package edu.rice.fset
 
 import io.kotest.core.spec.style.FreeSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeSameInstanceAs
 
 class BinaryChoiceTreeTests : FreeSpec({
     "standard tests" - {
         include(fsetTests("Binary Choice Tree (2)", emptyBinaryTreeSet(), emptyBinaryTreeSet()))
     }
-    /********* this only works if we're using familyHash2 ***********************
      "search finds the closest" {
      val v1 = 1
      val h1 = v1.familyHash2()  // h1 = [363786555, -1926862651]
@@ -47,5 +48,4 @@ class BinaryChoiceTreeTests : FreeSpec({
      // the rest should be the same as above
      t5.right shouldBeSameInstanceAs t3.right
      }
-     *********************/
 })
