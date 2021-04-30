@@ -1,5 +1,6 @@
 package edu.rice.fset
 
+import kotlin.random.Random
 import kotlin.system.exitProcess
 
 /**
@@ -103,11 +104,8 @@ internal fun <E : Any> BinaryTree<E>.remove(hashValue: Int, element: E): BinaryT
                                 lEmpty && rEmpty -> emptyBinaryTree()
                                 lEmpty -> right
                                 rEmpty -> left
-                                else -> if (
-                                    (left as BinaryTreeNode).storage.hashValue.familyHash1() <
-                                    (right as BinaryTreeNode).storage.hashValue.familyHash1()
-                                ) {
-                                    // kinda deterministic coin toss to decide which way to rotate
+                                else -> if (Random.nextBoolean()) {
+                                    // coin toss to decide which way to rotate
                                     rotateRight().remove(hashValue, element)
                                 } else {
                                     rotateLeft().remove(hashValue, element)

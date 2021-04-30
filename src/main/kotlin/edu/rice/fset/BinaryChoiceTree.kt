@@ -1,5 +1,7 @@
 package edu.rice.fset
 
+import kotlin.random.Random
+
 /**
  * An unbalanced binary tree that switches left or right based on the hash values
  * of the elements rather than relying on elements being comparable. Unlike
@@ -103,11 +105,14 @@ internal fun <E : Any> BinaryChoiceTree<E>.insert(element: E): BinaryChoiceTree<
 
     return when (resultsWithElement.size) {
         0 -> {
-            val smallestPath = searchResults.minByOrNull { it.depth }
-            if (smallestPath == null) {
-                throw RuntimeException("shouldn't ever have no minimum search depth")
-            } else {
-                this.insert(smallestPath.hashValue, element)
+            val minDepth = searchResults.minOf { it.depth }
+            val smallestPath = searchResults.filter { it.depth == minDepth }
+            when (smallestPath.size) {
+                0 -> throw RuntimeException("should always have at least one element of min size")
+                1 -> this.insert(smallestPath[0].hashValue, element)
+                // We have multiple choices at the same depth, so we'll pick one at random,
+                // since we don't want to have any biases.
+                else -> this.insert(smallestPath[Random.nextInt(smallestPath.size)].hashValue, element)
             }
         }
         1 -> this.insert(resultsWithElement[0].hashValue, element)
@@ -164,11 +169,8 @@ internal fun <E : Any> BinaryChoiceTree<E>.remove(hashValue: Int, element: E): B
                             lEmpty && rEmpty -> emptyBinaryChoiceTree()
                             lEmpty -> right
                             rEmpty -> left
-                            else -> if (
-                                (left as BinaryChoiceTreeNode).storage.hashValue.familyHash1() <
-                                (right as BinaryChoiceTreeNode).storage.hashValue.familyHash1()
-                            ) {
-                                // kinda deterministic coin toss to decide which way to rotate
+                            else -> if (Random.nextBoolean()) {
+                                // coin toss to decide which way to rotate
                                 rotateRight().remove(hashValue, element)
                             } else {
                                 rotateLeft().remove(hashValue, element)
@@ -271,7 +273,7 @@ internal data class BinaryChoiceTreeSet<E : Any>(val tree: BinaryChoiceTree<E>) 
         val maxDepth = nodeDepths.maxOrNull() ?: 0
         val avgDepth = nodeDepths.average()
 
-        return "nodes: ${nodeDepths.size}, maxDepth: $maxDepth, averageDepth: $avgDepth"
+        return "nodes: ${nodeDepths.size}, maxDepth: $maxDepth, average: %.2f".format(avgDepth)
     }
 
     override fun debugPrint() {

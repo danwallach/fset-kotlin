@@ -248,7 +248,7 @@ internal data class TreapSet<E : Any>(val treap: Treap<E>) : FSet<E> {
         val maxDepth = nodeDepths.maxOrNull() ?: 0
         val avgDepth = nodeDepths.average()
 
-        return "nodes: ${nodeDepths.size}, maxDepth: $maxDepth, averageDepth: $avgDepth"
+        return "nodes: ${nodeDepths.size}, maxDepth: $maxDepth, average: %.2f".format(avgDepth)
     }
 
     override fun debugPrint() {
