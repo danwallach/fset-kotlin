@@ -11,14 +11,13 @@ internal fun <T> measure(block: () -> T): BenchmarkResult<T> {
     return BenchmarkResult((end - start) / 1_000_000_000.0, result)
 }
 
-internal fun benchmark(name: String, size: Int, iterations: Int, emptyIntSet: FSet<Int>) {
-    println("----------------- Benchmarking $name (size = $size, iter = $iterations) -------------------")
+internal fun benchmark(name: String, size: Int, offsets: List<Int>, emptyIntSet: FSet<Int>) {
+    println("----------------- Benchmarking $name (size = $size, iter = ${offsets.size}) -------------------")
 
     print("Run: ")
-    val runtimes: List<BenchmarkResult<String>> = (1..iterations).map {
+    val runtimes: List<BenchmarkResult<String>> = offsets.map { offset ->
         measure {
             print(".")
-            val offset = Random.nextInt(Short.MAX_VALUE.toInt())
             val bigSet1 = emptyIntSet.addAll((offset + 1)..(offset + size))
 //            println("START")
 //            bigSet1.debugPrint()
@@ -51,7 +50,10 @@ internal fun benchmark(name: String, size: Int, iterations: Int, emptyIntSet: FS
 fun main() {
     val size = 20000
     val iterations = 10
-    benchmark("Treap", size, iterations, emptyTreapSet())
-    benchmark("Binary Tree", size, iterations, emptyBinaryTreeSet())
-    benchmark("Binary Choice", size, iterations, emptyBinaryChoiceTreeSet())
+    val offsets = generateSequence {
+        Random.nextInt(Short.MAX_VALUE.toInt())
+    }.take(iterations).toList()
+    benchmark("Treap", size, offsets, emptyTreapSet())
+    benchmark("Binary Tree", size, offsets, emptyBinaryTreeSet())
+    benchmark("Binary Choice", size, offsets, emptyBinaryChoiceTreeSet())
 }

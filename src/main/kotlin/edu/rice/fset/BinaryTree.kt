@@ -219,7 +219,7 @@ internal data class BinaryTreeSet<E : Any>(val tree: BinaryTree<E>) : FSet<E> {
         val maxDepth = nodeDepths.maxOrNull() ?: 0
         val avgDepth = nodeDepths.average()
 
-        return "nodes: %d, maxDepth: %d, average: %.2f".format(nodeDepths.size, maxDepth, avgDepth)
+        return "nodes: %d, maxDepth: %d, avgDepth: %.2f".format(nodeDepths.size, maxDepth, avgDepth)
     }
 
     override fun debugPrint() {

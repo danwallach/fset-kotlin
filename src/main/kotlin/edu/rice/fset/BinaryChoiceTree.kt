@@ -273,7 +273,7 @@ internal data class BinaryChoiceTreeSet<E : Any>(val tree: BinaryChoiceTree<E>) 
         val maxDepth = nodeDepths.maxOrNull() ?: 0
         val avgDepth = nodeDepths.average()
 
-        return "nodes: ${nodeDepths.size}, maxDepth: $maxDepth, average: %.2f".format(avgDepth)
+        return "nodes: ${nodeDepths.size}, maxDepth: $maxDepth, avgDepth: %.2f".format(avgDepth)
     }
 
     override fun debugPrint() {
