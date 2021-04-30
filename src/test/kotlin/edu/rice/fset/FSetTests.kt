@@ -85,16 +85,36 @@ fun fsetTests(
                 if (inputs.contains(other)) {
                     setsEqual(testMe, testMePlus) shouldBe true
                     testMe shouldBe testMePlus
-                    testMe.hashCode() shouldBe testMePlus.hashCode()
+                    val testMeHash = testMe.hashCode()
+                    val testMePlusHash = testMePlus.hashCode()
+                    testMeHash shouldBe testMePlusHash
                     setsEqual(testMe, testMinus) shouldBe false
                     testMe shouldNotBe testMinus
                 } else {
                     setsEqual(testMe, testMinus) shouldBe true
                     testMe shouldBe testMinus
-                    testMe.hashCode() shouldBe testMinus.hashCode()
+                    val testMeHash = testMe.hashCode()
+                    val testMinusHash = testMinus.hashCode()
+
+                    if (testMeHash != testMinusHash) {
+                        // slightly more useful debugging output than just a failed assertion
+                        println("These should be the same!")
+                        testMe.debugPrint()
+                        println()
+                        testMinus.debugPrint()
+                    }
+                    testMeHash shouldBe testMinusHash
                     setsEqual(testMe, testMePlus) shouldBe false
                     testMe shouldNotBe testMePlus
                 }
+            }
+        }
+        "removing everything, ending up with nothing (strings)" {
+            checkAll<List<String>> { inputs ->
+                val fullSet = emptyStringSet.addAll(inputs.asIterable())
+                val emptySetAgain = fullSet.removeAll(inputs.shuffled().asIterable())
+//                println("Stats: ${fullSet.statistics()} -> ${emptySetAgain.statistics()}")
+                emptySetAgain shouldBe emptyStringSet
             }
         }
     }

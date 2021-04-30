@@ -10,6 +10,7 @@ internal fun treapEquals(t1: Treap<out Any>, t2: Treap<out Any>): Boolean = when
     t1 is EmptyTreap && t2 is EmptyTreap -> true
     t1 is TreapNode && t2 is TreapNode ->
         t1.storage == t2.storage &&
+            t1.priority == t2.priority &&
             treapEquals(t1.left, t2.left) &&
             treapEquals(t1.right, t2.right)
     else -> false
@@ -26,6 +27,7 @@ internal class EmptyTreap<E : Any> : Treap<E> {
 
 internal data class TreapNode<E : Any>(
     val storage: NodeStorage<E>,
+    val priority: Int,
     val left: Treap<E>,
     val right: Treap<E>
 ) : Treap<E> {
@@ -37,7 +39,7 @@ internal data class TreapNode<E : Any>(
     // We're again going to take advantage of the unique shape of these treaps,
     // giving us a more efficient construction for a hash over the treap.
     override fun hashCode() =
-        left.hashCode() * 31 + storage.hashCode() * 7 + right.hashCode()
+        left.hashCode() * 31 + storage.hashValue * 7 + right.hashCode()
 }
 
 internal val <E : Any> Treap<E>.size: Int
@@ -52,13 +54,13 @@ internal fun <E : Any> Treap<E>.isEmpty() = when (this) {
 }
 
 internal fun <E : Any> TreapNode<E>.updateLeft(newLeft: Treap<E>) =
-    TreapNode(storage, newLeft, right)
+    TreapNode(storage, priority, newLeft, right)
 
 internal fun <E : Any> TreapNode<E>.updateRight(newRight: Treap<E>) =
-    TreapNode(storage, left, newRight)
+    TreapNode(storage, priority, left, newRight)
 
 internal fun <E : Any> TreapNode<E>.updateStorage(newStorage: NodeStorage<E>) =
-    TreapNode(newStorage, left, right)
+    TreapNode(newStorage, priority, left, right)
 
 internal fun <E : Any> TreapNode<E>.rotateRight(): Treap<E> = when (left) {
     is EmptyTreap -> throw RuntimeException("cannot rotate right without a left subtree")
@@ -81,27 +83,27 @@ internal fun <E : Any> Treap<E>.treapify(): Treap<E> = when (this) {
     is TreapNode -> {
         val lEmpty = left.isEmpty()
         val rEmpty = right.isEmpty()
-        val lHash = if (lEmpty) Int.MAX_VALUE else (left as TreapNode).storage.hashValue
-        val rHash = if (rEmpty) Int.MAX_VALUE else (right as TreapNode).storage.hashValue
+        val lPriority = if (lEmpty) Int.MAX_VALUE else (left as TreapNode).priority
+        val rPriority = if (rEmpty) Int.MAX_VALUE else (right as TreapNode).priority
 
         if (lEmpty && rEmpty) {
             this
         } else if (lEmpty) {
-            if (rHash < storage.hashValue) {
+            if (rPriority < priority) {
                 rotateLeft()
             } else {
                 this
             }
         } else if (rEmpty) {
-            if (lHash < storage.hashValue) {
+            if (lPriority < priority) {
                 rotateRight()
             } else {
                 this
             }
         } else {
-            if (storage.hashValue < lHash && storage.hashValue < rHash) {
+            if (priority < lPriority && priority < rPriority) {
                 this
-            } else if (lHash < storage.hashValue && lHash < rHash) {
+            } else if (lPriority < priority && lPriority < rPriority) {
                 rotateRight()
             } else {
                 rotateLeft()
@@ -111,9 +113,9 @@ internal fun <E : Any> Treap<E>.treapify(): Treap<E> = when (this) {
 }
 
 internal fun <E : Any> Treap<E>.insert(hashValue: Int, element: E): Treap<E> = when (this) {
-    is EmptyTreap -> TreapNode(nodeStorageOf(hashValue, element), this, this)
+    is EmptyTreap -> TreapNode(nodeStorageOf(hashValue, element), hashValue.familyHash1(), this, this)
     is TreapNode -> {
-        val localHashValue = storage.hashCode()
+        val localHashValue = storage.hashValue
         when {
             hashValue < localHashValue -> updateLeft(left.insert(hashValue, element)).treapify()
             hashValue > localHashValue -> updateRight(right.insert(hashValue, element)).treapify()
@@ -125,7 +127,7 @@ internal fun <E : Any> Treap<E>.insert(hashValue: Int, element: E): Treap<E> = w
 internal fun <E : Any> Treap<E>.remove(hashValue: Int, element: E): Treap<E> = when (this) {
     is EmptyTreap -> this // nothing to remove!
     is TreapNode -> {
-        val localHashValue = storage.hashCode()
+        val localHashValue = storage.hashValue
         when {
             hashValue < localHashValue -> updateLeft(left.remove(hashValue, element))
             hashValue > localHashValue -> updateRight(right.remove(hashValue, element))
@@ -137,13 +139,12 @@ internal fun <E : Any> Treap<E>.remove(hashValue: Int, element: E): Treap<E> = w
                 if (revisedStorage == null) {
                     val lEmpty = left.isEmpty()
                     val rEmpty = right.isEmpty()
-                    val lHash = if (lEmpty) Int.MAX_VALUE else (left as TreapNode).storage.hashValue
-                    val rHash =
-                        if (rEmpty) Int.MAX_VALUE else (right as TreapNode).storage.hashValue
                     when {
                         lEmpty && rEmpty -> emptyTreap()
-                        lEmpty -> rotateLeft().remove(hashValue, element)
-                        rEmpty || (lHash < rHash) -> rotateRight().remove(hashValue, element)
+                        lEmpty -> right
+                        rEmpty -> left
+                        (left as TreapNode).priority < (right as TreapNode).priority ->
+                            rotateRight().remove(hashValue, element)
                         else -> rotateLeft().remove(hashValue, element)
                     }
                 } else {
@@ -157,7 +158,7 @@ internal fun <E : Any> Treap<E>.remove(hashValue: Int, element: E): Treap<E> = w
 internal fun <E : Any> Treap<E>.lookup(hashValue: Int): Sequence<E> = when (this) {
     is EmptyTreap -> sequenceOf()
     is TreapNode -> {
-        val localHashValue = storage.hashCode()
+        val localHashValue = storage.hashValue
         when {
             hashValue < localHashValue -> left.lookup(hashValue)
             hashValue > localHashValue -> right.lookup(hashValue)
@@ -165,6 +166,10 @@ internal fun <E : Any> Treap<E>.lookup(hashValue: Int): Sequence<E> = when (this
         }
     }
 }
+
+// internal fun <E : Any> Treap<E>.validate(lowerBound: Int = Int.MIN_VALUE, uppperBound: Int = Int.MAX_VALUE, priorityU) : Unit = when (this) {
+//
+// }
 
 internal val emptyTreapSingleton: EmptyTreap<Any> = EmptyTreap()
 
@@ -178,47 +183,76 @@ internal fun <E : Any> Treap<E>.storageSequence(): Sequence<NodeStorage<E>> = wh
         left.storageSequence() + sequenceOf(storage) + right.storageSequence()
 }
 
+internal fun <E : Any> Treap<E>.nodeDepths(priorDepth: Int = 1): Sequence<Int> = when (this) {
+    is EmptyTreap -> sequenceOf()
+    is TreapNode ->
+        left.nodeDepths(priorDepth + 1) +
+            sequenceOf(priorDepth) +
+            right.nodeDepths(priorDepth + 1)
+}
+
 /** Warning: no ordering guarantees for objects with equal hashcodes */
 internal fun <E : Any> Treap<E>.iterator() =
     this.storageSequence().flatMap { it.asSequence() }.iterator()
 
+internal fun <E : Any> Treap<E>.debugPrint(depth: Int = 0): Unit = when (this) {
+    is EmptyTreap -> { }
+    is TreapNode -> {
+        println("%s| storage: %s, priority: %d".format(" ".repeat(depth * 2), this.storage, this.priority))
+        left.debugPrint(depth + 1)
+        right.debugPrint(depth + 1)
+    }
+}
+
 // /////////// Now, a binary tree "set" from the binary tree
 
-internal data class TreapSet<E : Any>(val tree: Treap<E>) : FSet<E> {
+internal data class TreapSet<E : Any>(val treap: Treap<E>) : FSet<E> {
     override val size: Int
-        get() = tree.size
+        get() = treap.size
 
     override fun equals(other: Any?) = when (other) {
-        is TreapSet<*> -> tree == other.tree
+        is TreapSet<*> -> treap == other.treap
         else -> false
     }
 
-    override fun hashCode() = tree.hashCode()
+    override fun hashCode() = treap.hashCode()
 
-    override fun isEmpty() = tree.isEmpty()
+    override fun isEmpty() = treap.isEmpty()
 
-    override fun iterator() = tree.iterator()
+    override fun iterator() = treap.iterator()
 
     override fun plus(element: E) =
-        TreapSet(tree.insert(element.hashCode(), element))
+        TreapSet(treap.insert(element.familyHash1(), element))
 
     override fun addAll(elements: Iterable<E>) =
-        TreapSet(elements.fold(tree) { t, e -> t.insert(e.hashCode(), e) })
+        TreapSet(elements.fold(treap) { t, e -> t.insert(e.familyHash1(), e) })
 
     override fun minus(element: E) =
-        TreapSet(tree.remove(element.hashCode(), element))
+        TreapSet(treap.remove(element.familyHash1(), element))
 
     override fun removeAll(elements: Iterable<E>) =
-        TreapSet(elements.fold(tree) { t, e -> t.remove(e.hashCode(), e) })
+        TreapSet(elements.fold(treap) { t, e -> t.remove(e.familyHash1(), e) })
 
     override fun lookup(element: E) =
-        tree.lookup(element.hashCode())
+        treap.lookup(element.familyHash1())
             .filter { it == element }
             .firstOrNull()
 
     override fun toString(): String {
-        val result = tree.iterator().asSequence().joinToString(separator = ", ")
+        val result = treap.iterator().asSequence().joinToString(separator = ", ")
         return "TreapSet($result)"
+    }
+
+    override fun statistics(): String {
+        val nodeDepths = treap.nodeDepths().toList()
+        val maxDepth = nodeDepths.maxOrNull() ?: 0
+        val avgDepth = nodeDepths.average()
+
+        return "nodes: ${nodeDepths.size}, maxDepth: $maxDepth, averageDepth: $avgDepth"
+    }
+
+    override fun debugPrint() {
+        treap.debugPrint()
     }
 }
 

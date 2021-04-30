@@ -64,69 +64,69 @@ internal fun findOurPrimes(): List<Long> {
         (it shl 28) or (it shl 24) or (it shl 20) or (it shl 16) or
             (it shl 12) or (it shl 8) or (it shl 4) or it
     }
-    return startingPoints.map { findPrimeAfter(it) }
+    return startingPoints.map { findPrimeAfter(2_654_435_769L + it) }
 }
 
 // these values derived using the function above
-internal val bigPrimes = intArrayOf(
-    286331173, 572662309, 858993503, 1145324633, 1431655777,
-    1717986953, 2004318077, -2004318069, -1717986845, -1431655745, -1145324607, -858993437,
-    -572662265, -286331109
+internal val bigPrimes = longArrayOf(
+    2940766931L, 3227098129L, 3513429229L, 3799760401L,
+    4086091553L, 4372422701L, 4658753851L, 4945084993L, 5231416147L, 5517747349L, 5804078453L,
+    6090409621L, 6376740779L, 6663071941L
 )
 
 fun Any.familyHash1(): Int {
-    return this.hashCode() * bigPrimes[13]
+    return (this.hashCode() * bigPrimes[0]).toInt()
 }
 
 fun Any.familyHash2(): IntArray {
     val oHash = this.hashCode()
     return intArrayOf(
-        oHash * bigPrimes[6],
-        oHash * bigPrimes[13]
+        (oHash * bigPrimes[6]).toInt(),
+        (oHash * bigPrimes[13]).toInt()
     )
 }
 
 fun Any.familyHash4(): IntArray {
     val oHash = this.hashCode()
     return intArrayOf(
-        oHash * bigPrimes[4],
-        oHash * bigPrimes[7],
-        oHash * bigPrimes[10],
-        oHash * bigPrimes[13]
+        (oHash * bigPrimes[4]).toInt(),
+        (oHash * bigPrimes[7]).toInt(),
+        (oHash * bigPrimes[10]).toInt(),
+        (oHash * bigPrimes[13]).toInt()
     )
 }
 
 fun Any.familyHash8(): IntArray {
     val oHash = this.hashCode()
     return intArrayOf(
-        oHash * bigPrimes[0],
-        oHash * bigPrimes[2],
-        oHash * bigPrimes[4],
-        oHash * bigPrimes[6],
-        oHash * bigPrimes[7],
-        oHash * bigPrimes[9],
-        oHash * bigPrimes[11],
-        oHash * bigPrimes[13]
+        (oHash * bigPrimes[0]).toInt(),
+        (oHash * bigPrimes[2]).toInt(),
+        (oHash * bigPrimes[4]).toInt(),
+        (oHash * bigPrimes[6]).toInt(),
+        (oHash * bigPrimes[7]).toInt(),
+        (oHash * bigPrimes[9]).toInt(),
+        (oHash * bigPrimes[11]).toInt(),
+        (oHash * bigPrimes[13]).toInt()
     )
 }
 
 fun Any.familyHash14(): IntArray {
     val oHash = this.hashCode()
     return intArrayOf(
-        oHash * bigPrimes[0],
-        oHash * bigPrimes[1],
-        oHash * bigPrimes[2],
-        oHash * bigPrimes[3],
-        oHash * bigPrimes[4],
-        oHash * bigPrimes[5],
-        oHash * bigPrimes[6],
-        oHash * bigPrimes[7],
-        oHash * bigPrimes[8],
-        oHash * bigPrimes[9],
-        oHash * bigPrimes[10],
-        oHash * bigPrimes[11],
-        oHash * bigPrimes[12],
-        oHash * bigPrimes[13],
+        (oHash * bigPrimes[0]).toInt(),
+        (oHash * bigPrimes[1]).toInt(),
+        (oHash * bigPrimes[2]).toInt(),
+        (oHash * bigPrimes[3]).toInt(),
+        (oHash * bigPrimes[4]).toInt(),
+        (oHash * bigPrimes[5]).toInt(),
+        (oHash * bigPrimes[6]).toInt(),
+        (oHash * bigPrimes[7]).toInt(),
+        (oHash * bigPrimes[8]).toInt(),
+        (oHash * bigPrimes[9]).toInt(),
+        (oHash * bigPrimes[10]).toInt(),
+        (oHash * bigPrimes[11]).toInt(),
+        (oHash * bigPrimes[12]).toInt(),
+        (oHash * bigPrimes[13]).toInt(),
     )
 }
 
@@ -134,8 +134,4 @@ fun main() {
     println("Searching for some big primes")
     val primes = findOurPrimes()
     println("Big primes: " + primes.joinToString(separator = ", "))
-    println(
-        "Big primes (as signed 32-bit): " + primes.map { it.toInt() }
-            .joinToString(separator = ", ")
-    )
 }

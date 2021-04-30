@@ -53,4 +53,15 @@ interface FSet<E : Any> : Set<E> {
     override fun contains(element: E) = lookup(element) != null
 
     override fun containsAll(elements: Collection<E>) = elements.all { contains(it) }
+
+    /**
+     * Returns internal statistics about the performance of the data structure. Useful
+     * for printing. Used for internal debugging.
+     */
+    fun statistics(): String
+
+    /**
+     * Prints the tree in a verbose way to stdout. Used for internal debugging.
+     */
+    fun debugPrint(): Unit
 }

@@ -21,6 +21,8 @@ internal class NodeStorageOne<E : Any>(hashValue: Int, val element: E) : NodeSto
     }
 
     override fun hashCode(): Int = hashValue
+
+    override fun toString() = "NodeStorageOne(hashValue=$hashValue, element=$element)"
 }
 
 internal class NodeStorageList<E : Any>(hashValue: Int, val elements: List<E>) :
@@ -40,6 +42,8 @@ internal class NodeStorageList<E : Any>(hashValue: Int, val elements: List<E>) :
     }
 
     override fun hashCode(): Int = hashValue
+
+    override fun toString() = "NodeStorageList(hashValue=$hashValue, elements=$elements)"
 }
 
 internal fun <E : Any> NodeStorage<E>.insert(element: E): NodeStorage<E> =
@@ -63,10 +67,12 @@ internal fun <E : Any> nodeStorageOf(
         priorStorage.insert(element)
     }
 
-internal fun <E : Any> NodeStorage<E>.contains(element: E): Boolean = when (this) {
-    is NodeStorageOne -> this.element == element
-    is NodeStorageList -> this.elements.contains(element)
+internal operator fun <E : Any> NodeStorage<E>.get(element: E): E? = when (this) {
+    is NodeStorageOne -> if (this.element == element) this.element else null
+    is NodeStorageList -> this.elements.find { it == element }
 }
+
+internal fun <E : Any> NodeStorage<E>.contains(element: E) = this[element] != null
 
 internal fun <E : Any> NodeStorage<E>.remove(element: E): NodeStorage<E>? = when (this) {
     is NodeStorageOne -> if (this.element == element) null else this

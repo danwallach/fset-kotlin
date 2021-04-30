@@ -1,8 +1,15 @@
 package edu.rice.fset
 
+import kotlin.system.exitProcess
+
 /**
  * An unbalanced binary tree that switches left or right based on the hash values
- * of the elements rather than relying on elements being comparable.
+ * of the elements rather than relying on elements being comparable. This uses
+ * our own hashing (see, e.g., [Any.familyHash1]) as a post-process on the results
+ * of the usual hashCode method which ensures that even if there's limited entropy
+ * in the space of possible hash values, the results will still be spread out in
+ * the tree with a distribution similar to what we might see if the hash values
+ * were "random".
  */
 internal sealed interface BinaryTree<E : Any>
 
@@ -66,7 +73,7 @@ internal fun <E : Any> BinaryTree<E>.insert(hashValue: Int, element: E): BinaryT
     when (this) {
         is EmptyBinaryTree -> BinaryTreeNode(nodeStorageOf(hashValue, element), this, this)
         is BinaryTreeNode -> {
-            val localHashValue = storage.hashCode() // already has the familyHash inside
+            val localHashValue = storage.hashValue
             when {
                 hashValue < localHashValue -> updateLeft(left.insert(hashValue, element))
                 hashValue > localHashValue -> updateRight(right.insert(hashValue, element))
@@ -75,39 +82,55 @@ internal fun <E : Any> BinaryTree<E>.insert(hashValue: Int, element: E): BinaryT
         }
     }
 
-internal fun <E : Any> BinaryTree<E>.remove(hashValue: Int, element: E): BinaryTree<E> =
-    when (this) {
-        is EmptyBinaryTree -> this // nothing to remove!
-        is BinaryTreeNode -> {
-            val localHashValue = storage.hashCode() // already has the familyHash inside
-            when {
-                hashValue < localHashValue -> updateLeft(left.remove(hashValue, element))
-                hashValue > localHashValue -> updateRight(right.remove(hashValue, element))
-                else -> {
-                    // If there's only one thing in the storage, then this whole node
-                    // needs to go away. But if there's more than one thing here, we
-                    // only need to update the storage and we're still fine.
-                    val revisedStorage = storage.remove(element)
-                    if (revisedStorage == null) {
-                        val lEmpty = left.isEmpty()
-                        val rEmpty = right.isEmpty()
-                        when {
-                            lEmpty && rEmpty -> emptyBinaryTree()
-                            lEmpty -> rotateLeft().remove(hashValue, element)
-                            else -> rotateRight().remove(hashValue, element)
+internal fun <E : Any> BinaryTree<E>.remove(hashValue: Int, element: E): BinaryTree<E> {
+    try {
+        return when (this) {
+            is EmptyBinaryTree -> this // nothing to remove!
+            is BinaryTreeNode -> {
+                val localHashValue = storage.hashValue
+                when {
+                    hashValue < localHashValue -> updateLeft(left.remove(hashValue, element))
+                    hashValue > localHashValue -> updateRight(right.remove(hashValue, element))
+                    else -> {
+                        // If there's only one thing in the storage, then this whole node
+                        // needs to go away. But if there's more than one thing here, we
+                        // only need to update the storage and we're still fine.
+                        val revisedStorage = storage.remove(element)
+                        if (revisedStorage == null) {
+                            val lEmpty = left.isEmpty()
+                            val rEmpty = right.isEmpty()
+                            when {
+                                lEmpty && rEmpty -> emptyBinaryTree()
+                                lEmpty -> right
+                                rEmpty -> left
+                                else -> if (
+                                    (left as BinaryTreeNode).storage.hashValue.familyHash1() <
+                                    (right as BinaryTreeNode).storage.hashValue.familyHash1()
+                                ) {
+                                    // kinda deterministic coin toss to decide which way to rotate
+                                    rotateRight().remove(hashValue, element)
+                                } else {
+                                    rotateLeft().remove(hashValue, element)
+                                }
+                            }
+                        } else {
+                            updateStorage(revisedStorage)
                         }
-                    } else {
-                        updateStorage(revisedStorage)
                     }
                 }
             }
         }
+    } catch (e: StackOverflowError) {
+        println("Stack overflow: remove($hashValue, $element), subtree state:")
+        debugPrint()
+        exitProcess(1)
     }
+}
 
 internal fun <E : Any> BinaryTree<E>.lookup(hashValue: Int): Sequence<E> = when (this) {
     is EmptyBinaryTree -> sequenceOf()
     is BinaryTreeNode -> {
-        val localHashValue = storage.hashCode() // already has the familyHash inside
+        val localHashValue = storage.hashValue
         when {
             hashValue < localHashValue -> left.lookup(hashValue)
             hashValue > localHashValue -> right.lookup(hashValue)
@@ -128,9 +151,31 @@ internal fun <E : Any> BinaryTree<E>.storageSequence(): Sequence<NodeStorage<E>>
         left.storageSequence() + sequenceOf(storage) + right.storageSequence()
 }
 
+internal fun <E : Any> BinaryTree<E>.nodeDepths(priorDepth: Int = 1): Sequence<Int> = when (this) {
+    is EmptyBinaryTree -> sequenceOf()
+    is BinaryTreeNode ->
+        left.nodeDepths(priorDepth + 1) +
+            sequenceOf(priorDepth) +
+            right.nodeDepths(priorDepth + 1)
+}
+
 /** Warning: no ordering guarantees for objects with equal hashcodes */
 internal fun <E : Any> BinaryTree<E>.iterator() =
     this.storageSequence().flatMap { it.asSequence() }.iterator()
+
+internal fun <E : Any> BinaryTree<E>.debugPrint(depth: Int = 0): Unit = when (this) {
+    is EmptyBinaryTree -> { }
+    is BinaryTreeNode -> {
+        if (left.isEmpty() && right.isEmpty()) {
+            println("%s| leaf:     %s".format(" ".repeat(depth * 2), this.storage))
+        } else {
+            val numChildren = (if (left.isEmpty()) 0 else 1) + (if (right.isEmpty()) 0 else 1)
+            println("%s| interior: (children: %d) %s".format(" ".repeat(depth * 2), numChildren, this.storage))
+            left.debugPrint(depth + 1)
+            right.debugPrint(depth + 1)
+        }
+    }
+}
 
 // /////////// Now, a binary tree "set" from the binary tree
 
@@ -169,6 +214,18 @@ internal data class BinaryTreeSet<E : Any>(val tree: BinaryTree<E>) : FSet<E> {
     override fun toString(): String {
         val result = tree.iterator().asSequence().joinToString(separator = ", ")
         return "BinaryTreeSet($result)"
+    }
+
+    override fun statistics(): String {
+        val nodeDepths = tree.nodeDepths().toList()
+        val maxDepth = nodeDepths.maxOrNull() ?: 0
+        val avgDepth = nodeDepths.average()
+
+        return "nodes: %d, maxDepth: %d, average: %.2f".format(nodeDepths.size, maxDepth, avgDepth)
+    }
+
+    override fun debugPrint() {
+        tree.debugPrint()
     }
 }
 
