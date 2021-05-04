@@ -137,6 +137,28 @@ internal fun <E : Any> BinaryTree<E>.lookup(hashValue: Int): Sequence<E> = when 
     }
 }
 
+internal fun <E : Any> BinaryTree<E>.update(hashValue: Int, element: E): BinaryTree<E> =
+    when (this) {
+        is EmptyBinaryTree -> this
+        is BinaryTreeNode -> {
+            val localHashValue = storage.hashValue
+            when {
+                hashValue < localHashValue -> {
+                    val newLeft = left.update(hashValue, element)
+                    if (newLeft === left) this else updateLeft(newLeft)
+                }
+                hashValue > localHashValue -> {
+                    val newRight = right.update(hashValue, element)
+                    if (newRight === right) this else updateRight(newRight)
+                }
+                else -> {
+                    val newStorage = storage.update(element)
+                    if (newStorage === storage) this else updateStorage(newStorage)
+                }
+            }
+        }
+    }
+
 internal val emptyTreeSingleton: EmptyBinaryTree<Any> = EmptyBinaryTree()
 
 @Suppress("UNCHECKED_CAST")
@@ -157,18 +179,25 @@ internal fun <E : Any> BinaryTree<E>.nodeDepths(priorDepth: Int = 1): Sequence<I
             right.nodeDepths(priorDepth + 1)
 }
 
-/** Warning: no ordering guarantees for objects with equal hashcodes */
+/** Warning: no ordering guarantees for objects with equal hash codes */
 internal fun <E : Any> BinaryTree<E>.iterator() =
     this.storageSequence().flatMap { it.asSequence() }.iterator()
 
 internal fun <E : Any> BinaryTree<E>.debugPrint(depth: Int = 0): Unit = when (this) {
-    is EmptyBinaryTree -> { }
+    is EmptyBinaryTree -> {
+    }
     is BinaryTreeNode -> {
         if (left.isEmpty() && right.isEmpty()) {
             println("%s| leaf:     %s".format(" ".repeat(depth * 2), this.storage))
         } else {
             val numChildren = (if (left.isEmpty()) 0 else 1) + (if (right.isEmpty()) 0 else 1)
-            println("%s| interior: (children: %d) %s".format(" ".repeat(depth * 2), numChildren, this.storage))
+            println(
+                "%s| interior: (children: %d) %s".format(
+                    " ".repeat(depth * 2),
+                    numChildren,
+                    this.storage
+                )
+            )
             left.debugPrint(depth + 1)
             right.debugPrint(depth + 1)
         }
@@ -208,6 +237,15 @@ internal data class BinaryTreeSet<E : Any>(val tree: BinaryTree<E>) : FSet<E> {
         tree.lookup(element.familyHash1())
             .filter { it == element }
             .firstOrNull()
+
+    override fun update(element: E): BinaryTreeSet<E> {
+        val newTree = tree.update(element.familyHash1(), element)
+        return if (newTree === tree) {
+            this
+        } else {
+            BinaryTreeSet(newTree)
+        }
+    }
 
     override fun toString(): String {
         val result = tree.iterator().asSequence().joinToString(separator = ", ")

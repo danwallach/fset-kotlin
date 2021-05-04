@@ -86,6 +86,17 @@ internal fun <E : Any> NodeStorage<E>.remove(element: E): NodeStorage<E>? = when
     }
 }
 
+internal fun <E : Any> NodeStorage<E>.update(element: E): NodeStorage<E> = when (this) {
+    is NodeStorageOne -> if (this.element == element) NodeStorageOne(hashValue, element) else this
+    is NodeStorageList -> {
+        if (element in elements) {
+            NodeStorageList(hashValue, elements.filter { it != element } + element)
+        } else {
+            this
+        }
+    }
+}
+
 internal fun <E : Any> NodeStorage<E>.asSequence() = when (this) {
     is NodeStorageOne -> sequenceOf(element)
     is NodeStorageList -> elements.asSequence()

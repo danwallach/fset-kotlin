@@ -50,6 +50,13 @@ interface FSet<E : Any> : Set<E> {
      */
     fun lookup(element: E): E?
 
+    /**
+     * Given an element E, if it's "equal" to something that's already present, this returns
+     * a new set, with the old element replaced by the new one. If the element is not present,
+     * the original set is returned.
+     */
+    fun update(element: E): FSet<E>
+
     override fun contains(element: E) = lookup(element) != null
 
     override fun containsAll(elements: Collection<E>) = elements.all { contains(it) }

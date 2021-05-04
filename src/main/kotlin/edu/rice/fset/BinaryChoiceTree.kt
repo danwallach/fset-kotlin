@@ -112,7 +112,10 @@ internal fun <E : Any> BinaryChoiceTree<E>.insert(element: E): BinaryChoiceTree<
                 1 -> this.insert(smallestPath[0].hashValue, element)
                 // We have multiple choices at the same depth, so we'll pick one at random,
                 // since we don't want to have any biases.
-                else -> this.insert(smallestPath[Random.nextInt(smallestPath.size)].hashValue, element)
+                else -> this.insert(
+                    smallestPath[Random.nextInt(smallestPath.size)].hashValue,
+                    element
+                )
             }
         }
         1 -> this.insert(resultsWithElement[0].hashValue, element)
@@ -122,7 +125,11 @@ internal fun <E : Any> BinaryChoiceTree<E>.insert(element: E): BinaryChoiceTree<
 
 internal fun <E : Any> BinaryChoiceTree<E>.insert(hashValue: Int, element: E): BinaryChoiceTree<E> =
     when (this) {
-        is EmptyBinaryChoiceTree -> BinaryChoiceTreeNode(nodeStorageOf(hashValue, element), this, this)
+        is EmptyBinaryChoiceTree -> BinaryChoiceTreeNode(
+            nodeStorageOf(hashValue, element),
+            this,
+            this
+        )
         is BinaryChoiceTreeNode -> {
             val localHashValue = storage.hashValue
             when {
@@ -199,32 +206,58 @@ internal fun <E : Any> BinaryChoiceTree<E>.lookup(hashValue: Int, element: E): E
     }
 }
 
+internal fun <E : Any> BinaryChoiceTree<E>.update(hashValue: Int, element: E): BinaryChoiceTree<E> =
+    when (this) {
+        is EmptyBinaryChoiceTree -> this
+        is BinaryChoiceTreeNode -> {
+            val localHashValue = storage.hashValue
+            when {
+                hashValue < localHashValue -> {
+                    val newLeft = left.update(hashValue, element)
+                    if (newLeft === left) this else updateLeft(newLeft)
+                }
+                hashValue > localHashValue -> {
+                    val newRight = right.update(hashValue, element)
+                    if (newRight === right) this else updateRight(newRight)
+                }
+                else -> {
+                    val newStorage = storage.update(element)
+                    if (newStorage === storage) this else updateStorage(newStorage)
+                }
+            }
+        }
+    }
+
 internal val emptyChoiceTreeSingleton: EmptyBinaryChoiceTree<Any> = EmptyBinaryChoiceTree()
 
 @Suppress("UNCHECKED_CAST")
-internal fun <E : Any> emptyBinaryChoiceTree(): BinaryChoiceTree<E> = emptyChoiceTreeSingleton as BinaryChoiceTree<E>
+internal fun <E : Any> emptyBinaryChoiceTree(): BinaryChoiceTree<E> =
+    emptyChoiceTreeSingleton as BinaryChoiceTree<E>
 
 /** Guarantees ordering of hash values, but no guarantees of ordering within a NodeStorage */
-internal fun <E : Any> BinaryChoiceTree<E>.storageSequence(): Sequence<NodeStorage<E>> = when (this) {
-    is EmptyBinaryChoiceTree -> sequenceOf()
-    is BinaryChoiceTreeNode ->
-        left.storageSequence() + sequenceOf(storage) + right.storageSequence()
-}
+internal fun <E : Any> BinaryChoiceTree<E>.storageSequence(): Sequence<NodeStorage<E>> =
+    when (this) {
+        is EmptyBinaryChoiceTree -> sequenceOf()
+        is BinaryChoiceTreeNode ->
+            left.storageSequence() + sequenceOf(storage) + right.storageSequence()
+    }
 
-internal fun <E : Any> BinaryChoiceTree<E>.nodeDepths(priorDepth: Int = 1): Sequence<Int> = when (this) {
-    is EmptyBinaryChoiceTree -> sequenceOf()
-    is BinaryChoiceTreeNode ->
-        left.nodeDepths(priorDepth + 1) +
-            sequenceOf(priorDepth) +
-            right.nodeDepths(priorDepth + 1)
-}
+internal fun <E : Any> BinaryChoiceTree<E>.nodeDepths(priorDepth: Int = 1): Sequence<Int> =
+    when (this) {
+        is EmptyBinaryChoiceTree -> sequenceOf()
+        is BinaryChoiceTreeNode ->
+            left.nodeDepths(priorDepth + 1) +
+                sequenceOf(priorDepth) +
+                right.nodeDepths(priorDepth + 1)
+    }
 
 /** Warning: no ordering guarantees for objects with equal hashcodes */
 internal fun <E : Any> BinaryChoiceTree<E>.iterator() =
     this.storageSequence().flatMap { it.asSequence() }.iterator()
 
 internal fun <E : Any> BinaryChoiceTree<E>.debugPrint(depth: Int = 0): Unit = when (this) {
-    is EmptyBinaryChoiceTree -> { }
+    is EmptyBinaryChoiceTree -> {
+    }
     is BinaryChoiceTreeNode -> {
         println("%s| storage: %s".format(" ".repeat(depth * 2), this.storage))
         left.debugPrint(depth + 1)
@@ -263,6 +296,21 @@ internal data class BinaryChoiceTreeSet<E : Any>(val tree: BinaryChoiceTree<E>) 
 
     override fun lookup(element: E) = tree.lookup(element)
 
+    override fun update(element: E): BinaryChoiceTreeSet<E> {
+        val hashes = element.familyHash2()
+        val newTree = tree.update(hashes[0], element)
+        return if (newTree === tree) {
+            val newTree2 = tree.update(hashes[1], element)
+            return if (newTree2 == tree) {
+                this
+            } else {
+                BinaryChoiceTreeSet(newTree2)
+            }
+        } else {
+            BinaryChoiceTreeSet(newTree)
+        }
+    }
+
     override fun toString(): String {
         val result = tree.iterator().asSequence().joinToString(separator = ", ")
         return "BinaryChoiceTreeSet($result)"
@@ -283,6 +331,7 @@ internal data class BinaryChoiceTreeSet<E : Any>(val tree: BinaryChoiceTree<E>) 
 
 fun <E : Any> emptyBinaryChoiceTreeSet(): FSet<E> = BinaryChoiceTreeSet(emptyBinaryChoiceTree())
 
-fun <E : Any> binaryChoiceTreeSetOf(vararg elements: E) = elements.asIterable().toBinaryChoiceTreeSet()
+fun <E : Any> binaryChoiceTreeSetOf(vararg elements: E) =
+    elements.asIterable().toBinaryChoiceTreeSet()
 
 fun <E : Any> Iterable<E>.toBinaryChoiceTreeSet() = emptyBinaryChoiceTreeSet<E>().addAll(this)

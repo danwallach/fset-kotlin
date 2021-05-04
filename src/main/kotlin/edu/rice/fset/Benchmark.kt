@@ -31,7 +31,8 @@ internal fun benchmark(name: String, size: Int, offsets: List<Int>, emptyIntSet:
 //            println("REMOVE AGAIN")
 //            bigSet4.debugPrint()
 
-            val ignored = ((offset + 1)..(offset + size * 2) step 3).map { bigSet4.lookup(it) ?: 0 }.sum()
+            val ignored =
+                ((offset + 1)..(offset + size * 2) step 3).map { bigSet4.lookup(it) ?: 0 }.sum()
 //            bigSet.debugPrint()
             bigSet4.statistics()
         }

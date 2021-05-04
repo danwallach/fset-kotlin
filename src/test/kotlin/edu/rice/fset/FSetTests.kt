@@ -3,6 +3,7 @@ package edu.rice.fset
 import io.kotest.core.spec.style.freeSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.types.shouldBeSameInstanceAs
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.arbitrary
 import io.kotest.property.arbitrary.int
@@ -31,10 +32,11 @@ val listIntWithLameHashGen = arbitrary { rs ->
 
 fun <E : Any> setsEqual(a: Set<E>, b: Set<E>): Boolean = a.containsAll(b) && b.containsAll(a)
 
-fun fsetTests(
+internal fun fsetTests(
     algorithm: String,
     emptyStringSet: FSet<String>,
-    emptyIntSet: FSet<IntWithLameHash>
+    emptyIntSet: FSet<IntWithLameHash>,
+    emptyKVSet: FSet<KeyValuePair<String, Int>>
 ) = freeSpec {
     algorithm - {
         "basic inserts and membership (string)" {
@@ -115,6 +117,31 @@ fun fsetTests(
                 val emptySetAgain = fullSet.removeAll(inputs.shuffled().asIterable())
 //                println("Stats: ${fullSet.statistics()} -> ${emptySetAgain.statistics()}")
                 emptySetAgain shouldBe emptyStringSet
+            }
+        }
+        "key-value insertion, removal, update (strings)" {
+            checkAll<List<String>, String> { base, query ->
+                val fullSet = emptyKVSet.addAll(base.map { kv(it, it.length) })
+                val q = kv(query, query.length + 10) // guaranteed not the original value
+
+                if (q.key in base) {
+                    val oldEntry = fullSet.lookup(q)
+                    oldEntry shouldNotBe null
+                    q.key shouldBe oldEntry?.key
+                    q.key.length shouldBe oldEntry?.value
+
+                    val newSet = fullSet.update(q)
+                    val newEntry = newSet.lookup(q)
+                    newEntry shouldNotBe null
+                    q.key shouldBe newEntry?.key
+                    q.value shouldBe newEntry?.value
+                } else {
+                    val oldEntry = fullSet.lookup(q)
+                    oldEntry shouldBe null
+
+                    val newSet = fullSet.update(q)
+                    newSet shouldBeSameInstanceAs fullSet
+                }
             }
         }
     }

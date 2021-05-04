@@ -113,7 +113,12 @@ internal fun <E : Any> Treap<E>.treapify(): Treap<E> = when (this) {
 }
 
 internal fun <E : Any> Treap<E>.insert(hashValue: Int, element: E): Treap<E> = when (this) {
-    is EmptyTreap -> TreapNode(nodeStorageOf(hashValue, element), hashValue.familyHash1(), this, this)
+    is EmptyTreap -> TreapNode(
+        nodeStorageOf(hashValue, element),
+        hashValue.familyHash1(),
+        this,
+        this
+    )
     is TreapNode -> {
         val localHashValue = storage.hashValue
         when {
@@ -167,9 +172,30 @@ internal fun <E : Any> Treap<E>.lookup(hashValue: Int): Sequence<E> = when (this
     }
 }
 
-// internal fun <E : Any> Treap<E>.validate(lowerBound: Int = Int.MIN_VALUE, uppperBound: Int = Int.MAX_VALUE, priorityU) : Unit = when (this) {
-//
-// }
+internal fun <E : Any> Treap<E>.update(hashValue: Int, element: E): Treap<E> = when (this) {
+    is EmptyTreap -> this
+    is TreapNode -> {
+        // This code is the same as in BinaryTree. That's okay, because the
+        // value we're updating is "equal" to the original value, and thus
+        // has the same hash value. No need to rotate or otherwise worry
+        // about treap priorities.
+        val localHashValue = storage.hashValue
+        when {
+            hashValue < localHashValue -> {
+                val newLeft = left.update(hashValue, element)
+                if (newLeft === left) this else updateLeft(newLeft)
+            }
+            hashValue > localHashValue -> {
+                val newRight = right.update(hashValue, element)
+                if (newRight === right) this else updateRight(newRight)
+            }
+            else -> {
+                val newStorage = storage.update(element)
+                if (newStorage === storage) this else updateStorage(newStorage)
+            }
+        }
+    }
+}
 
 internal val emptyTreapSingleton: EmptyTreap<Any> = EmptyTreap()
 
@@ -196,9 +222,16 @@ internal fun <E : Any> Treap<E>.iterator() =
     this.storageSequence().flatMap { it.asSequence() }.iterator()
 
 internal fun <E : Any> Treap<E>.debugPrint(depth: Int = 0): Unit = when (this) {
-    is EmptyTreap -> { }
+    is EmptyTreap -> {
+    }
     is TreapNode -> {
-        println("%s| storage: %s, priority: %d".format(" ".repeat(depth * 2), this.storage, this.priority))
+        println(
+            "%s| storage: %s, priority: %d".format(
+                " ".repeat(depth * 2),
+                this.storage,
+                this.priority
+            )
+        )
         left.debugPrint(depth + 1)
         right.debugPrint(depth + 1)
     }
@@ -237,6 +270,15 @@ internal data class TreapSet<E : Any>(val treap: Treap<E>) : FSet<E> {
         treap.lookup(element.familyHash1())
             .filter { it == element }
             .firstOrNull()
+
+    override fun update(element: E): TreapSet<E> {
+        val newTreap = treap.update(element.familyHash1(), element)
+        return if (newTreap === treap) {
+            this
+        } else {
+            TreapSet(newTreap)
+        }
+    }
 
     override fun toString(): String {
         val result = treap.iterator().asSequence().joinToString(separator = ", ")
