@@ -53,22 +53,8 @@ internal const val BITS_PER_LEVEL = 5
 internal const val MAX_STORAGE_SLOTS = 32 // 2^5
 internal const val LEVEL_MASK = 31U // 000...00011111
 
-internal fun getSparseStorageIndex(bitmap: UInt, location: Int): Int =
+internal fun sparseLocation(bitmap: UInt, location: Int): Int =
     (((1U shl location) - 1U) and bitmap).toInt().countOneBits()
-
-internal fun <E : Any> HamtFullNode<E>.getNodeEntry(location: Int): HamtNode<E> =
-    if (location < 0 || location >= MAX_STORAGE_SLOTS) {
-        throw RuntimeException("location $location out of bounds")
-    } else {
-        storage[location]
-    }
-
-internal fun <E : Any> HamtSparseNode<E>.getNodeEntry(location: Int): HamtNode<E> =
-    if (location < 0 || location >= MAX_STORAGE_SLOTS) {
-        throw RuntimeException("location $location out of bounds")
-    } else {
-        storage[getSparseStorageIndex(bitmap, location)]
-    }
 
 internal fun <E : Any> HamtNode<E>.insert(element: E, fullHash: UInt, offset: Int): HamtNode<E> {
     val locationOffset = ((fullHash shr offset) and LEVEL_MASK).toInt()
@@ -122,10 +108,13 @@ internal fun <E : Any> HamtNode<E>.insert(element: E, fullHash: UInt, offset: In
 
             // The bottom two cases are basically the same, so we'll just construct the
             // same array and then depending on its length, decide what to do with it.
+
+            val sparseOffset = sparseLocation(bitmap, locationOffset)
+
             if ((bitmap and locationBit) != 0U) {
                 // case 1
                 val newStorage = (0..storage.size).map { loc ->
-                    if (loc == locationOffset) {
+                    if (loc == sparseOffset) {
                         storage[loc].insert(element, fullHash, offset + BITS_PER_LEVEL)
                     } else {
                         storage[loc]
@@ -135,18 +124,123 @@ internal fun <E : Any> HamtNode<E>.insert(element: E, fullHash: UInt, offset: In
             } else {
                 val newStorage = (0..storage.size).map { loc ->
                     when {
-                        loc < locationOffset -> storage[loc]
-                        loc > locationOffset -> storage[loc - 1]
+                        loc < sparseOffset -> storage[loc]
+                        loc > sparseOffset -> storage[loc - 1]
                         else -> storage[loc].insert(element, fullHash, offset + BITS_PER_LEVEL)
                     }
                 }.toTypedArray()
 
                 if (newStorage.size == MAX_STORAGE_SLOTS) {
-                    // case 2
                     HamtFullNode(newStorage)
                 } else {
-                    // case 3
                     HamtSparseNode(bitmap or locationBit, newStorage)
+                }
+            }
+        }
+    }
+}
+
+internal fun <E : Any> HamtNode<E>.remove(element: E, fullHash: UInt, offset: Int): HamtNode<E> {
+    val locationOffset = ((fullHash shr offset) and LEVEL_MASK).toInt()
+    val locationBit = 1U shl locationOffset
+
+    return when (this) {
+        is HamtEmptyNode -> this  // nothing to remove!
+        is HamtLeafNodeOne -> if (hash == fullHash) {
+            emptyHamtNode()
+        } else {
+            this  // nothing to remove!
+        }
+        is HamtLeafNodeMany -> {
+            // So many cases to worry about:
+            // 1) the thing we're removing matches the hash that's already here, so
+            //    we need to remove it
+            //    a) yielding no size change (so it wasn't there)
+            //    b) yielding only one result
+            //    c) yielding two or more
+            // 2) the thing we're removing isn't here, so we're done
+            if (hash == fullHash) {
+                val newContents = contents.filter { it != element }
+                val newSize = newContents.size
+                when {
+                    newSize == contents.size -> this // nothing to remove!
+                    newSize == 1 -> HamtLeafNodeOne(hash, newContents[0])
+                    else -> HamtLeafNodeMany(hash, newContents)
+                }
+            } else {
+                this
+            }
+        }
+        is HamtFullNode -> {
+            // We're removing from a node where every position is already full,
+            // so recursion is going to happen. So many cases!
+            // 1) We get back what was already there, so nothing changed.
+            // 2) If we get back an empty node, then we need to build a sparse node.
+            // 3) Otherwise, we're just replacing what we've already got in the same slot.
+            //    so we'll need to copy everything in the array except for the
+            //    position where we'll need to place the result.
+
+            val removeNode = storage[locationOffset]
+            val newRemoveNode = removeNode.remove(element, fullHash, offset + BITS_PER_LEVEL)
+
+            when {
+                newRemoveNode === removeNode -> this // nothing changed!
+                newRemoveNode is HamtEmptyNode -> {
+                    val newStorage = storage
+                        .filterIndexed { index, hamtNode -> index == locationOffset }
+                        .toTypedArray()
+                    val newBitmap = locationBit.inv()
+                    HamtSparseNode(newBitmap, newStorage)
+                }
+                else -> {
+                    val newStorage = storage
+                        .mapIndexed { index, hamtNode ->
+                            if(index == locationOffset) newRemoveNode else hamtNode }
+                        .toTypedArray()
+                    HamtFullNode(newStorage)
+                }
+            }
+        }
+        is HamtSparseNode -> {
+            // We're removing from a node where we have some but not all positions full,
+            // so we have many, many cases.
+            // 1) The sub-node slot is empty. Nothing there to remove. We're done.
+            // 2) The sub-node slot has something, so we need to do a recursive removal.
+            //    a) The result is the same as what's there; nothing got removed. We're done.
+            //    b) The result is an empty node, so this slot needs to become empty
+            //       1) If this gets us down to a single slot, we might be able to simplify
+            //       2) Otherwise, just another sparse node
+            //    c) The result is non-empty, so we need to just replace what's in the slot
+
+            val sparseOffset = sparseLocation(bitmap, locationOffset)
+
+            if ((bitmap and locationBit) == 0U) {
+                this
+            } else {
+                val removeNode = storage[sparseOffset]
+                val newRemoveNode = removeNode.remove(element, fullHash, offset + BITS_PER_LEVEL)
+                when {
+                    removeNode === newRemoveNode -> this // nothing changed!
+                    newRemoveNode is HamtEmptyNode -> {
+                        val newStorage = storage
+                            .filterIndexed { index, hamtNode -> index != sparseOffset }
+                            .toTypedArray()
+                        when {
+                            newStorage.isEmpty() -> emptyHamtNode()
+                            newStorage.size == 1 &&
+                                    (newRemoveNode is HamtLeafNodeOne ||
+                                            newRemoveNode is HamtLeafNodeMany) -> newRemoveNode
+                            else -> HamtSparseNode(bitmap and locationBit.inv(), newStorage)
+                        }
+                    }
+                    else -> {
+                        val newStorage = storage
+                            .mapIndexed { index, hamtNode ->
+                                if (index == sparseOffset) newRemoveNode else hamtNode
+                            }
+                            .toTypedArray()
+                        HamtSparseNode(bitmap, newStorage)
+                    }
                 }
             }
         }
