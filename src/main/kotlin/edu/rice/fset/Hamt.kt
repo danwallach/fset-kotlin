@@ -56,12 +56,16 @@ internal const val BITS_PER_LEVEL = 5
 internal const val MAX_STORAGE_SLOTS = 32 // 2^5
 internal const val LEVEL_MASK = 31U // 000...00011111
 
-internal fun sparseLocation(bitmap: UInt, location: Int): Int =
-    (((1U shl location) - 1U) and bitmap).toInt().countOneBits()
+internal fun sparseLocation(bitmap: UInt, location: Int): Int {
+    val locationBit = 1U shl location
+    if (bitmap and locationBit == 0U)
+        throw RuntimeException("location $location not available in bitmap: 0x" + "%08x".format(bitmap.toInt()))
+    return (bitmap and (locationBit - 1U)).toInt().countOneBits()
+}
 
 internal fun <E : Any> HamtSparseNode<E>.updateOffset(sparseOffset: Int, updateFunc: (HamtNode<E>) -> HamtNode<E>): HamtSparseNode<E> {
     if (sparseOffset >= storage.size || sparseOffset < 0)
-        throw RuntimeException("storage doesn't contain requested offset: $sparseOffset (bitmap: ${"0x%08x".format(bitmap)})")
+        throw RuntimeException("storage doesn't contain requested offset: $sparseOffset (bitmap: 0x" + "%08x".format(bitmap.toInt()) + ")")
 
     return HamtSparseNode(
         bitmap,
@@ -199,7 +203,7 @@ internal fun <E : Any> HamtNode<E>.remove(element: E, fullHash: UInt, offset: In
                 newRemoveNode === removeNode -> this // nothing changed!
                 newRemoveNode is HamtEmptyNode -> {
                     val newStorage = storage
-                        .filterIndexed { index, hamtNode -> index != locationOffset }
+                        .filterIndexed { index, _ -> index != locationOffset }
                         .toTypedArray()
                     val newBitmap = locationBit.inv()
                     HamtSparseNode(newBitmap, newStorage)
@@ -229,7 +233,7 @@ internal fun <E : Any> HamtNode<E>.remove(element: E, fullHash: UInt, offset: In
                     removeNode === newRemoveNode -> this // nothing changed!
                     newRemoveNode is HamtEmptyNode -> {
                         val newStorage = storage
-                            .filterIndexed { index, hamtNode -> index != sparseOffset }
+                            .filterIndexed { index, _ -> index != sparseOffset }
                             .toTypedArray()
                         when {
                             newStorage.isEmpty() -> emptyHamtNode()
