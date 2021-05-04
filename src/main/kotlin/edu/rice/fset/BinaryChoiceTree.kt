@@ -13,11 +13,7 @@ import kotlin.random.Random
 internal sealed interface BinaryChoiceTree<E : Any>
 
 internal class EmptyBinaryChoiceTree<E : Any> : BinaryChoiceTree<E> {
-    override fun equals(other: Any?) = when (other) {
-        is EmptyBinaryChoiceTree<*> -> true
-        else -> false
-    }
-
+    override fun equals(other: Any?) = other === this
     override fun hashCode() = 1
 }
 
@@ -237,14 +233,14 @@ internal fun <E : Any> emptyBinaryChoiceTree(): BinaryChoiceTree<E> =
 /** Guarantees ordering of hash values, but no guarantees of ordering within a NodeStorage */
 internal fun <E : Any> BinaryChoiceTree<E>.storageSequence(): Sequence<NodeStorage<E>> =
     when (this) {
-        is EmptyBinaryChoiceTree -> sequenceOf()
+        is EmptyBinaryChoiceTree -> emptySequence()
         is BinaryChoiceTreeNode ->
             left.storageSequence() + sequenceOf(storage) + right.storageSequence()
     }
 
 internal fun <E : Any> BinaryChoiceTree<E>.nodeDepths(priorDepth: Int = 1): Sequence<Int> =
     when (this) {
-        is EmptyBinaryChoiceTree -> sequenceOf()
+        is EmptyBinaryChoiceTree -> emptySequence()
         is BinaryChoiceTreeNode ->
             left.nodeDepths(priorDepth + 1) +
                 sequenceOf(priorDepth) +

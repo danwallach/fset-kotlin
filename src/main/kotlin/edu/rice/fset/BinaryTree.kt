@@ -15,11 +15,7 @@ import kotlin.system.exitProcess
 internal sealed interface BinaryTree<E : Any>
 
 internal class EmptyBinaryTree<E : Any> : BinaryTree<E> {
-    override fun equals(other: Any?) = when (other) {
-        is EmptyBinaryTree<*> -> true
-        else -> false
-    }
-
+    override fun equals(other: Any?) = other === this
     override fun hashCode() = 1
 }
 
@@ -126,7 +122,7 @@ internal fun <E : Any> BinaryTree<E>.remove(hashValue: Int, element: E): BinaryT
 }
 
 internal fun <E : Any> BinaryTree<E>.lookup(hashValue: Int): Sequence<E> = when (this) {
-    is EmptyBinaryTree -> sequenceOf()
+    is EmptyBinaryTree -> emptySequence()
     is BinaryTreeNode -> {
         val localHashValue = storage.hashValue
         when {
@@ -166,13 +162,13 @@ internal fun <E : Any> emptyBinaryTree(): BinaryTree<E> = emptyTreeSingleton as 
 
 /** Guarantees ordering of hash values, but no guarantees of ordering within a NodeStorage */
 internal fun <E : Any> BinaryTree<E>.storageSequence(): Sequence<NodeStorage<E>> = when (this) {
-    is EmptyBinaryTree -> sequenceOf()
+    is EmptyBinaryTree -> emptySequence()
     is BinaryTreeNode ->
         left.storageSequence() + sequenceOf(storage) + right.storageSequence()
 }
 
 internal fun <E : Any> BinaryTree<E>.nodeDepths(priorDepth: Int = 1): Sequence<Int> = when (this) {
-    is EmptyBinaryTree -> sequenceOf()
+    is EmptyBinaryTree -> emptySequence()
     is BinaryTreeNode ->
         left.nodeDepths(priorDepth + 1) +
             sequenceOf(priorDepth) +

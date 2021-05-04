@@ -17,11 +17,7 @@ internal fun treapEquals(t1: Treap<out Any>, t2: Treap<out Any>): Boolean = when
 }
 
 internal class EmptyTreap<E : Any> : Treap<E> {
-    override fun equals(other: Any?) = when (other) {
-        is Treap<*> -> treapEquals(this, other)
-        else -> false
-    }
-
+    override fun equals(other: Any?) = other === this
     override fun hashCode() = 1
 }
 
@@ -161,7 +157,7 @@ internal fun <E : Any> Treap<E>.remove(hashValue: Int, element: E): Treap<E> = w
 }
 
 internal fun <E : Any> Treap<E>.lookup(hashValue: Int): Sequence<E> = when (this) {
-    is EmptyTreap -> sequenceOf()
+    is EmptyTreap -> emptySequence()
     is TreapNode -> {
         val localHashValue = storage.hashValue
         when {
@@ -204,13 +200,13 @@ internal fun <E : Any> emptyTreap(): Treap<E> = emptyTreapSingleton as Treap<E>
 
 /** Guarantees ordering of hash values, but no guarantees of ordering within a NodeStorage */
 internal fun <E : Any> Treap<E>.storageSequence(): Sequence<NodeStorage<E>> = when (this) {
-    is EmptyTreap -> sequenceOf()
+    is EmptyTreap -> emptySequence()
     is TreapNode ->
         left.storageSequence() + sequenceOf(storage) + right.storageSequence()
 }
 
 internal fun <E : Any> Treap<E>.nodeDepths(priorDepth: Int = 1): Sequence<Int> = when (this) {
-    is EmptyTreap -> sequenceOf()
+    is EmptyTreap -> emptySequence()
     is TreapNode ->
         left.nodeDepths(priorDepth + 1) +
             sequenceOf(priorDepth) +
