@@ -65,5 +65,5 @@ fun main() {
 //    benchmark("Treap", size, offsets, emptyTreapSet())
 //    benchmark("HAMT", size, offsets, emptyHamtSet())
     benchmark("HAMT", size * 10, offsets, emptyHamtSet())
-//    benchmark("Treap", size * 10, offsets, emptyTreapSet())
+    benchmark("Treap", size * 10, offsets, emptyTreapSet())
 }

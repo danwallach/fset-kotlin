@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
 plugins {
-    kotlin("jvm") version "1.5.0-RC"
+    kotlin("jvm") version "1.5.0"
     id("org.jlleitschuh.gradle.ktlint") version "10.0.0"
 }
 
@@ -24,10 +24,10 @@ dependencies {
     testImplementation(kotlin("test-junit5"))
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.6.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.6.0")
-    testImplementation("io.kotest:kotest-runner-junit5:4.5.0.RC1")
-    testImplementation("io.kotest:kotest-assertions-core:4.5.0.RC1")
-    testImplementation("io.kotest:kotest-property:4.5.0.RC1")
-    testRuntimeOnly("org.jetbrains.kotlin:kotlin-script-runtime:1.5.0-RC")
+    testImplementation("io.kotest:kotest-runner-junit5:4.5.0")
+    testImplementation("io.kotest:kotest-assertions-core:4.5.0")
+    testImplementation("io.kotest:kotest-property:4.5.0")
+    testRuntimeOnly("org.jetbrains.kotlin:kotlin-script-runtime:1.5.0")
 }
 
 tasks.test {
