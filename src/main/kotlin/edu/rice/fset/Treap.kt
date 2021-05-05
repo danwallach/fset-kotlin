@@ -201,16 +201,20 @@ internal fun <E : Any> emptyTreap(): Treap<E> = emptyTreapSingleton as Treap<E>
 /** Guarantees ordering of hash values, but no guarantees of ordering within a NodeStorage */
 internal fun <E : Any> Treap<E>.storageSequence(): Sequence<NodeStorage<E>> = when (this) {
     is EmptyTreap -> emptySequence()
-    is TreapNode ->
-        left.storageSequence() + sequenceOf(storage) + right.storageSequence()
+    is TreapNode -> sequence {
+        yieldAll(left.storageSequence())
+        yield(storage)
+        yieldAll(right.storageSequence())
+    }
 }
 
 internal fun <E : Any> Treap<E>.nodeDepths(priorDepth: Int = 1): Sequence<Int> = when (this) {
     is EmptyTreap -> emptySequence()
-    is TreapNode ->
-        left.nodeDepths(priorDepth + 1) +
-            sequenceOf(priorDepth) +
-            right.nodeDepths(priorDepth + 1)
+    is TreapNode -> sequence {
+        yieldAll(left.nodeDepths(priorDepth + 1))
+        yield(priorDepth)
+        yieldAll(right.nodeDepths(priorDepth + 1))
+    }
 }
 
 /** Warning: no ordering guarantees for objects with equal hashcodes */

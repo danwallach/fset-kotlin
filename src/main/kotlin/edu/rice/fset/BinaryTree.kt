@@ -163,16 +163,20 @@ internal fun <E : Any> emptyBinaryTree(): BinaryTree<E> = emptyTreeSingleton as 
 /** Guarantees ordering of hash values, but no guarantees of ordering within a NodeStorage */
 internal fun <E : Any> BinaryTree<E>.storageSequence(): Sequence<NodeStorage<E>> = when (this) {
     is EmptyBinaryTree -> emptySequence()
-    is BinaryTreeNode ->
-        left.storageSequence() + sequenceOf(storage) + right.storageSequence()
+    is BinaryTreeNode -> sequence {
+        yieldAll(left.storageSequence())
+        yield(storage)
+        yieldAll(right.storageSequence())
+    }
 }
 
 internal fun <E : Any> BinaryTree<E>.nodeDepths(priorDepth: Int = 1): Sequence<Int> = when (this) {
     is EmptyBinaryTree -> emptySequence()
-    is BinaryTreeNode ->
-        left.nodeDepths(priorDepth + 1) +
-            sequenceOf(priorDepth) +
-            right.nodeDepths(priorDepth + 1)
+    is BinaryTreeNode -> sequence {
+        yieldAll(left.nodeDepths(priorDepth + 1))
+        yield(priorDepth)
+        yieldAll(right.nodeDepths(priorDepth + 1))
+    }
 }
 
 /** Warning: no ordering guarantees for objects with equal hash codes */

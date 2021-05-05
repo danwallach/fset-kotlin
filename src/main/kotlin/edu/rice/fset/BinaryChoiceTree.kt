@@ -234,17 +234,21 @@ internal fun <E : Any> emptyBinaryChoiceTree(): BinaryChoiceTree<E> =
 internal fun <E : Any> BinaryChoiceTree<E>.storageSequence(): Sequence<NodeStorage<E>> =
     when (this) {
         is EmptyBinaryChoiceTree -> emptySequence()
-        is BinaryChoiceTreeNode ->
-            left.storageSequence() + sequenceOf(storage) + right.storageSequence()
+        is BinaryChoiceTreeNode -> sequence {
+            yieldAll(left.storageSequence())
+            yield(storage)
+            yieldAll(right.storageSequence())
+        }
     }
 
 internal fun <E : Any> BinaryChoiceTree<E>.nodeDepths(priorDepth: Int = 1): Sequence<Int> =
     when (this) {
         is EmptyBinaryChoiceTree -> emptySequence()
-        is BinaryChoiceTreeNode ->
-            left.nodeDepths(priorDepth + 1) +
-                sequenceOf(priorDepth) +
-                right.nodeDepths(priorDepth + 1)
+        is BinaryChoiceTreeNode -> sequence {
+            yieldAll(left.nodeDepths(priorDepth + 1))
+            yield(priorDepth)
+            yieldAll(right.nodeDepths(priorDepth + 1))
+        }
     }
 
 /** Warning: no ordering guarantees for objects with equal hashcodes */
