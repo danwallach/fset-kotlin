@@ -57,9 +57,20 @@ internal fun <E : Any> HamtLeafNodeOne<E>.upgradeToSparse(offset: Int = 0): Hamt
     return HamtSparseNode(locationBit, arrayStoreOne(this))
 }
 
-internal const val BITS_PER_LEVEL = 5
-internal const val MAX_STORAGE_SLOTS = 32 // 2^5
-internal const val LEVEL_MASK = 31U // 000...00011111
+//internal const val BITS_PER_LEVEL = 3
+//internal const val MAX_STORAGE_SLOTS = 8 // 2^3
+//internal const val LEVEL_MASK = 7U
+
+// Some simple benchmarking shows a 20% speedup if we go with 16 slots rather
+// than 32 slots. If we go down to 8 slots, it gets slower again, so 16 slots
+// seems to be optimal.
+internal const val BITS_PER_LEVEL = 4
+internal const val MAX_STORAGE_SLOTS = 16 // 2^4
+internal const val LEVEL_MASK = 15U
+
+//internal const val BITS_PER_LEVEL = 5
+//internal const val MAX_STORAGE_SLOTS = 32 // 2^5
+//internal const val LEVEL_MASK = 31U
 
 internal fun sparseLocation(bitmap: UInt, location: Int): Int {
     val locationBit = 1U shl location
