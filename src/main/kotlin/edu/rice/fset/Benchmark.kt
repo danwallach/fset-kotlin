@@ -49,12 +49,16 @@ internal fun benchmark(name: String, size: Int, offsets: List<Int>, emptyIntSet:
 }
 
 fun main() {
-    val size = 20000
-    val iterations = 10
+    val size = 40000
+    val iterations = 5
     val offsets = generateSequence {
         Random.nextInt(Short.MAX_VALUE.toInt())
     }.take(iterations).toList()
-    benchmark("Treap", size, offsets, emptyTreapSet())
     benchmark("Binary Tree", size, offsets, emptyBinaryTreeSet())
     benchmark("Binary Choice", size, offsets, emptyBinaryChoiceTreeSet())
+    benchmark("Treap", size, offsets, emptyTreapSet())
+    benchmark("HAMT", size, offsets, emptyHamtSet())
+
+    benchmark("Treap", size * 10, offsets, emptyTreapSet())
+    benchmark("HAMT", size * 10, offsets, emptyHamtSet())
 }

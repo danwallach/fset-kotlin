@@ -89,6 +89,13 @@ internal fun fsetTests(
                     testMe shouldBe testMePlus
                     val testMeHash = testMe.hashCode()
                     val testMePlusHash = testMePlus.hashCode()
+                    if (testMePlusHash != testMeHash) {
+                        // slightly more useful debugging output than just a failed assertion
+                        println("These should be the same!")
+                        testMe.debugPrint()
+                        println()
+                        testMePlus.debugPrint()
+                    }
                     testMeHash shouldBe testMePlusHash
                     setsEqual(testMe, testMinus) shouldBe false
                     testMe shouldNotBe testMinus

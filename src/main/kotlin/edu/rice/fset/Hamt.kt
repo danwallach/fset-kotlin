@@ -45,11 +45,16 @@ internal fun <E : Any> emptyHamtNode(): HamtNode<E> = emptySingleton as HamtNode
 
 // Also note: we're working our way up from the little-endian side of the bitmap and the hash.
 
-internal fun <E : Any> sparseNodeOf(element: E, fullHash: UInt, offset: Int = 0): HamtSparseNode<E> {
-    val locationOffset = (fullHash shr offset) and LEVEL_MASK
+internal fun <E : Any> HamtLeafNodeMany<E>.upgradeToSparse(offset: Int = 0): HamtSparseNode<E> {
+    val locationOffset = (hash shr offset) and LEVEL_MASK
     val locationBit = 1U shl locationOffset.toInt()
+    return HamtSparseNode(locationBit, arrayOf(this))
+}
 
-    return HamtSparseNode(locationBit, arrayOf(HamtLeafNodeOne(fullHash, element)))
+internal fun <E : Any> HamtLeafNodeOne<E>.upgradeToSparse(offset: Int = 0): HamtSparseNode<E> {
+    val locationOffset = (hash shr offset) and LEVEL_MASK
+    val locationBit = 1U shl locationOffset.toInt()
+    return HamtSparseNode(locationBit, arrayOf(this))
 }
 
 internal const val BITS_PER_LEVEL = 5
@@ -66,20 +71,29 @@ internal fun sparseBitmapContains(bitmap: UInt, location: Int): Boolean {
     return (bitmap and locationBit) != 0U
 }
 
-internal fun <E : Any> HamtSparseNode<E>.updateOffset(sparseOffset: Int, updateFunc: (HamtNode<E>) -> HamtNode<E>): HamtSparseNode<E> {
+internal fun <E : Any> HamtSparseNode<E>.updateOffset(
+    sparseOffset: Int,
+    updateFunc: (HamtNode<E>) -> HamtNode<E>
+): HamtSparseNode<E> {
     if (sparseOffset >= storage.size || sparseOffset < 0)
-        throw RuntimeException("storage doesn't contain requested offset: $sparseOffset (bitmap: 0x" + "%08x".format(bitmap.toInt()) + ")")
+        throw RuntimeException(
+            "storage doesn't contain requested offset: $sparseOffset (bitmap: 0x" + "%08x".format(
+                bitmap.toInt()
+            ) + ")"
+        )
 
     return HamtSparseNode(
         bitmap,
-        storage.mapIndexed {
-            index, node ->
+        storage.mapIndexed { index, node ->
             if (index == sparseOffset) updateFunc(node) else node
         }.toTypedArray()
     )
 }
 
-internal fun <E : Any> HamtFullNode<E>.updateOffset(location: Int, updateFunc: (HamtNode<E>) -> HamtNode<E>): HamtFullNode<E> {
+internal fun <E : Any> HamtFullNode<E>.updateOffset(
+    location: Int,
+    updateFunc: (HamtNode<E>) -> HamtNode<E>
+): HamtFullNode<E> {
     if (location >= storage.size || location < 0)
         throw RuntimeException("storage doesn't contain requested offset: $location")
 
@@ -90,17 +104,24 @@ internal fun <E : Any> HamtFullNode<E>.updateOffset(location: Int, updateFunc: (
     )
 }
 
-internal fun <E : Any> HamtNode<E>.insert(element: E, fullHash: UInt, offset: Int = 0): HamtNode<E> {
+internal fun <E : Any> HamtNode<E>.insert(
+    element: E,
+    fullHash: UInt,
+    offset: Int = 0
+): HamtNode<E> {
     val locationOffset = ((fullHash shr offset) and LEVEL_MASK).toInt()
     val locationBit = 1U shl locationOffset
 
     return when (this) {
         is HamtEmptyNode -> HamtLeafNodeOne(fullHash, element)
         is HamtLeafNodeOne -> if (hash == fullHash) {
-            HamtLeafNodeMany(hash, listOf(contents, element))
+            if (element == contents) {
+                this
+            } else {
+                HamtLeafNodeMany(hash, listOf(contents, element))
+            }
         } else {
-            sparseNodeOf(element, fullHash, offset)
-                .insert(contents, hash, offset)
+            upgradeToSparse(offset).insert(element, fullHash, offset)
         }
         is HamtLeafNodeMany -> {
             // Two cases here:
@@ -109,13 +130,13 @@ internal fun <E : Any> HamtNode<E>.insert(element: E, fullHash: UInt, offset: In
             // 2) the thing we're inserting doesn't fit here, so we have to upgrade
             //    this node from a leaf node to a sparse node
             if (hash == fullHash) {
-                HamtLeafNodeMany(hash, contents + element)
-            } else {
-                contents.fold(
-                    sparseNodeOf(element, fullHash, offset)
-                ) { n: HamtNode<E>, e: E ->
-                    n.insert(e, hash, offset)
+                if (element in contents) {
+                    this // already present, so nothing to do
+                } else {
+                    HamtLeafNodeMany(hash, contents + element)
                 }
+            } else {
+                upgradeToSparse(offset).insert(element, fullHash, offset)
             }
         }
         is HamtFullNode ->
@@ -158,7 +179,20 @@ internal fun <E : Any> HamtNode<E>.insert(element: E, fullHash: UInt, offset: In
     }
 }
 
-internal fun <E : Any> HamtNode<E>.remove(element: E, fullHash: UInt, offset: Int = 0): HamtNode<E> {
+internal fun <E : Any> HamtSparseNode<E>.normalize(): HamtNode<E> =
+    if (storage.size == 1)
+        when (storage[0]) {
+            is HamtLeafNodeMany -> storage[0]
+            is HamtLeafNodeOne -> storage[0]
+            else -> this
+        }
+    else this
+
+internal fun <E : Any> HamtNode<E>.remove(
+    element: E,
+    fullHash: UInt,
+    offset: Int = 0
+): HamtNode<E> {
     val locationOffset = ((fullHash shr offset) and LEVEL_MASK).toInt()
     val locationBit = 1U shl locationOffset
 
@@ -238,64 +272,74 @@ internal fun <E : Any> HamtNode<E>.remove(element: E, fullHash: UInt, offset: In
                             .toTypedArray()
                         when {
                             newStorage.isEmpty() -> emptyHamtNode()
-                            newStorage.size == 1 &&
-                                (
-                                    newRemoveNode is HamtLeafNodeOne ||
-                                        newRemoveNode is HamtLeafNodeMany
-                                    ) -> newRemoveNode
-                            else -> HamtSparseNode(bitmap and locationBit.inv(), newStorage)
+                            else -> HamtSparseNode(
+                                bitmap and locationBit.inv(),
+                                newStorage
+                            ).normalize()
                         }
                     }
-                    else -> updateOffset(locationOffset) { newRemoveNode }
+                    else -> updateOffset(sparseOffset) { newRemoveNode }
                 }
             }
         }
     }
 }
 
-internal fun <E : Any> HamtNode<E>.lookup(hashValue: Int, element: E, offset: Int = 0): E? = when (this) {
-    is HamtEmptyNode -> null // shouldn't ever happen
-    is HamtLeafNodeOne -> if (this.hash == hashValue.toUInt() && contents == element) contents else null
-    is HamtLeafNodeMany -> if (this.hash == hashValue.toUInt()) contents.firstOrNull { it == element } else null
-    is HamtFullNode -> {
-        val locationOffset = ((hashValue.toUInt() shr offset) and LEVEL_MASK).toInt()
-        storage[locationOffset].lookup(hashValue, element, offset + BITS_PER_LEVEL)
-    }
-    is HamtSparseNode -> {
-        val locationOffset = ((hashValue.toUInt() shr offset) and LEVEL_MASK).toInt()
-        if (!sparseBitmapContains(bitmap, locationOffset)) {
-            null
-        } else {
-            val sparseOffset = sparseLocation(bitmap, locationOffset)
-            storage[sparseOffset].lookup(hashValue, element, offset + BITS_PER_LEVEL)
+internal fun <E : Any> HamtNode<E>.lookup(element: E, fullHash: UInt, offset: Int = 0): E? =
+    when (this) {
+        is HamtEmptyNode -> null // shouldn't ever happen
+        is HamtLeafNodeOne -> if (this.hash == fullHash && contents == element) contents else null
+        is HamtLeafNodeMany -> if (this.hash == fullHash) contents.firstOrNull { it == element } else null
+        is HamtFullNode -> {
+            val locationOffset = ((fullHash shr offset) and LEVEL_MASK).toInt()
+            storage[locationOffset].lookup(element, fullHash, offset + BITS_PER_LEVEL)
+        }
+        is HamtSparseNode -> {
+            val locationOffset = ((fullHash shr offset) and LEVEL_MASK).toInt()
+            if (!sparseBitmapContains(bitmap, locationOffset)) {
+                null
+            } else {
+                val sparseOffset = sparseLocation(bitmap, locationOffset)
+                storage[sparseOffset].lookup(element, fullHash, offset + BITS_PER_LEVEL)
+            }
         }
     }
-}
 
-internal fun <E : Any> HamtNode<E>.update(hashValue: Int, element: E, offset: Int = 0): HamtNode<E> = when (this) {
+internal fun <E : Any> HamtNode<E>.update(
+    element: E,
+    fullHash: UInt,
+    offset: Int = 0
+): HamtNode<E> = when (this) {
     is HamtEmptyNode -> this // shouldn't ever happen
-    is HamtLeafNodeOne -> if (hash == hashValue.toUInt() && contents == element) HamtLeafNodeOne(hash, element) else this
+    is HamtLeafNodeOne -> if (hash == fullHash && contents == element) HamtLeafNodeOne(
+        hash,
+        element
+    ) else this
     is HamtLeafNodeMany ->
-        if (hash == hashValue.toUInt() && element in contents)
+        if (hash == fullHash && element in contents)
             HamtLeafNodeMany(hash, contents.map { if (it == element) element else it })
         else
             this
     is HamtFullNode -> {
-        val locationOffset = ((hashValue.toUInt() shr offset) and LEVEL_MASK).toInt()
-        val updateResult = storage[locationOffset].update(hashValue, element, offset + BITS_PER_LEVEL)
+        val locationOffset = ((fullHash shr offset) and LEVEL_MASK).toInt()
+        val updateResult = storage[locationOffset].update(
+            element,
+            fullHash,
+            offset + BITS_PER_LEVEL
+        )
         if (updateResult === storage[locationOffset])
             this
         else
             updateOffset(locationOffset) { updateResult }
     }
     is HamtSparseNode -> {
-        if (!sparseBitmapContains(bitmap, offset)) {
-            this.insert(element, hashValue.toUInt(), offset)
+        val locationOffset = ((fullHash shr offset) and LEVEL_MASK).toInt()
+        if (!sparseBitmapContains(bitmap, locationOffset)) {
+            this // nothing to update
         } else {
-            val sparseOffset =
-                sparseLocation(bitmap, ((hashValue.toUInt() shr offset) and LEVEL_MASK).toInt())
+            val sparseOffset = sparseLocation(bitmap, locationOffset)
             val updateResult =
-                storage[sparseOffset].update(hashValue, element, offset + BITS_PER_LEVEL)
+                storage[sparseOffset].update(element, fullHash, offset + BITS_PER_LEVEL)
             if (updateResult === storage[sparseOffset])
                 this
             else
@@ -336,11 +380,23 @@ internal fun <E : Any> HamtNode<E>.iterator() = storageSequence().flatMap { it }
 internal fun <E : Any> HamtNode<E>.debugPrint(depth: Int = 0) {
     val whitespace = " ".repeat(depth * 2)
     when (this) {
-        is HamtEmptyNode -> { }
+        is HamtEmptyNode -> {
+        }
         is HamtLeafNodeOne -> println("%s| leaf: %s".format(whitespace, contents.toString()))
-        is HamtLeafNodeMany -> println("%s| leaf: %s".format(whitespace, contents.joinToString(separator = ", ")))
+        is HamtLeafNodeMany -> println(
+            "%s| leaf: %s".format(
+                whitespace,
+                contents.joinToString(separator = ", ")
+            )
+        )
         is HamtSparseNode -> {
-            println("%s| sparse (bitmap: 0x%08x)".format(whitespace, bitmap))
+            println(
+                "%s| sparse (bitmap: 0x%08x) (%d entries)".format(
+                    whitespace,
+                    bitmap.toInt(),
+                    bitmap.countOneBits()
+                )
+            )
             storage.forEach { it.debugPrint(depth + 1) }
         }
         is HamtFullNode -> {
@@ -383,10 +439,10 @@ internal data class HamtSet<E : Any>(val tree: HamtNode<E>) : FSet<E> {
         return if (newTree === tree) this else HamtSet(newTree)
     }
 
-    override fun lookup(element: E): E? = tree.lookup(element.familyHash1(), element)
+    override fun lookup(element: E): E? = tree.lookup(element, element.familyHash1().toUInt())
 
     override fun update(element: E): FSet<E> {
-        val newTree = tree.update(element.familyHash1(), element)
+        val newTree = tree.update(element, element.familyHash1().toUInt())
         return if (newTree === tree) this else HamtSet(newTree)
     }
 
