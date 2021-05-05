@@ -10,9 +10,9 @@ internal fun treapEquals(t1: Treap<out Any>, t2: Treap<out Any>): Boolean = when
     t1 is EmptyTreap && t2 is EmptyTreap -> true
     t1 is TreapNode && t2 is TreapNode ->
         t1.storage == t2.storage &&
-            t1.priority == t2.priority &&
-            treapEquals(t1.left, t2.left) &&
-            treapEquals(t1.right, t2.right)
+                t1.priority == t2.priority &&
+                treapEquals(t1.left, t2.left) &&
+                treapEquals(t1.right, t2.right)
     else -> false
 }
 

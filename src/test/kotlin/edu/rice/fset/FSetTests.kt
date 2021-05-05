@@ -58,8 +58,8 @@ internal fun fsetTests(
                 if (actualSize != expectedSize) {
                     println(
                         "expected: ${
-                        inputs.toSet()
-                            .sortedWith(compareBy<IntWithLameHash> { it.hashCode() }.thenBy { it.element })
+                            inputs.toSet()
+                                .sortedWith(compareBy<IntWithLameHash> { it.hashCode() }.thenBy { it.element })
                         }"
                     )
                     println("actual:")

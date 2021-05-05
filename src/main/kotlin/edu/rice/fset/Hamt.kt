@@ -134,12 +134,14 @@ internal fun <E : Any> HamtNode<E>.insert(
             // We're inserting into a node where every position is already full,
             // so we'll need to copy everything in the array except for the
             // position where we'll need to do a recursive insert.
-            updateOffset(locationOffset,
+            updateOffset(
+                locationOffset,
                 storage[locationOffset].insert(
                     element,
                     fullHash,
                     offset + BITS_PER_LEVEL
-                ))
+                )
+            )
 
         is HamtSparseNode -> {
             // Three sub-cases:
@@ -155,12 +157,14 @@ internal fun <E : Any> HamtNode<E>.insert(
             val sparseOffset = sparseLocation(bitmap, locationOffset)
             if (sparseBitmapContains(bitmap, locationOffset)) {
                 // case 1
-                updateOffset(sparseOffset,
+                updateOffset(
+                    sparseOffset,
                     storage[sparseOffset].insert(
                         element,
                         fullHash,
                         offset + BITS_PER_LEVEL
-                    ))
+                    )
+                )
             } else {
                 val newStorage = storage.insert(HamtLeafNodeOne(fullHash, element), sparseOffset)
 
@@ -385,7 +389,8 @@ internal fun <E : Any> HamtNode<E>.iterator() = storageSequence().flatMap { it }
 internal fun <E : Any> HamtNode<E>.debugPrint(depth: Int = 0) {
     val whitespace = " ".repeat(depth * 2)
     when (this) {
-        is HamtEmptyNode -> { }
+        is HamtEmptyNode -> {
+        }
         is HamtLeafNodeOne -> println("%s| leaf: %s".format(whitespace, contents.toString()))
         is HamtLeafNodeMany -> println(
             "%s| leaf: %s".format(

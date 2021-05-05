@@ -62,7 +62,7 @@ internal fun findOurPrimes(): List<Long> {
     val startingPoints: List<Long> = (1L..14L).map {
         // repeat these four bits eight times, giving us a broader distribution of starting points
         (it shl 28) or (it shl 24) or (it shl 20) or (it shl 16) or
-            (it shl 12) or (it shl 8) or (it shl 4) or it
+                (it shl 12) or (it shl 8) or (it shl 4) or it
     }
     return startingPoints.map { findPrimeAfter(2_654_435_769L + it) }
 }
