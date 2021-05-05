@@ -71,7 +71,7 @@ internal fun sparseBitmapContains(bitmap: UInt, location: Int): Boolean {
     return (bitmap and locationBit) != 0U
 }
 
-inline internal fun <E : Any> HamtSparseNode<E>.updateOffset(
+internal fun <E : Any> HamtSparseNode<E>.updateOffset(
     sparseOffset: Int,
     node: HamtNode<E>
 ): HamtSparseNode<E> {
@@ -85,7 +85,7 @@ inline internal fun <E : Any> HamtSparseNode<E>.updateOffset(
     return HamtSparseNode(bitmap, storage.updateOffset(sparseOffset, node))
 }
 
-inline internal fun <E : Any> HamtFullNode<E>.updateOffset(
+internal fun <E : Any> HamtFullNode<E>.updateOffset(
     location: Int,
     node: HamtNode<E>
 ): HamtFullNode<E> {

@@ -90,7 +90,7 @@ internal fun <E : Any> ArrayStore<E>.updateElement(element: E): ArrayStore<E> {
 }
 
 @Suppress("UNCHECKED_CAST")
-inline internal fun <E : Any> ArrayStore<E>.updateOffset(offset: Int, element: E): ArrayStore<E> {
+internal fun <E : Any> ArrayStore<E>.updateOffset(offset: Int, element: E): ArrayStore<E> {
     val newArray = arrayOfNulls<Any>(contents.size)
     for (i in 0 until contents.size) {
         newArray[i] = if (i == offset) {
