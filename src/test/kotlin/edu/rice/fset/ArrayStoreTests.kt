@@ -3,7 +3,11 @@ package edu.rice.fset
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.property.Arb
-import io.kotest.property.arbitrary.*
+import io.kotest.property.arbitrary.arbitrary
+import io.kotest.property.arbitrary.int
+import io.kotest.property.arbitrary.list
+import io.kotest.property.arbitrary.map
+import io.kotest.property.arbitrary.next
 import io.kotest.property.checkAll
 
 internal val listIntWithIndex = arbitrary { rs ->
@@ -73,6 +77,14 @@ class ArrayStoreTests : FreeSpec({
 
             // now, we'll try something that's not there
             as1.updateElement(kv("-5", 5)).deepEquals(as1) shouldBe true
+        }
+    }
+    "updateOffset" {
+        checkAll(listIntWithIndex) { (list, query) ->
+            val as1 = list.toArrayStore()
+            val as2 = as1.updateOffset(query, -5)
+            val expected = list.subList(0, query) + (-5) + (list.subList(query + 1, list.size))
+            as2.toList() shouldBe expected
         }
     }
     "contains and find" {

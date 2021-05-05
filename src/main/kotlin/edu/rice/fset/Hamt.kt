@@ -6,8 +6,7 @@ internal sealed interface HamtNode<E : Any>
 internal data class HamtSparseNode<E : Any>(
     val bitmap: UInt,
     val storage: ArrayStore<HamtNode<E>>
-) :
-    HamtNode<E>
+) : HamtNode<E>
 
 // If we end up in the case where every bit is full, then we'll simplify to just the
 // array and nothing else.
@@ -72,37 +71,28 @@ internal fun sparseBitmapContains(bitmap: UInt, location: Int): Boolean {
     return (bitmap and locationBit) != 0U
 }
 
-internal fun <E : Any> HamtSparseNode<E>.updateOffset(
+inline internal fun <E : Any> HamtSparseNode<E>.updateOffset(
     sparseOffset: Int,
-    updateFunc: (HamtNode<E>) -> HamtNode<E>
+    node: HamtNode<E>
 ): HamtSparseNode<E> {
-    if (sparseOffset >= storage.size() || sparseOffset < 0)
-        throw RuntimeException(
-            "storage doesn't contain requested offset: $sparseOffset (bitmap: 0x" + "%08x".format(
-                bitmap.toInt()
-            ) + ")"
-        )
+//    if (sparseOffset >= storage.size() || sparseOffset < 0)
+//        throw RuntimeException(
+//            "storage doesn't contain requested offset: $sparseOffset (bitmap: 0x" + "%08x".format(
+//                bitmap.toInt()
+//            ) + ")"
+//        )
 
-    return HamtSparseNode(
-        bitmap,
-        storage.mapIndexed { index, node ->
-            if (index == sparseOffset) updateFunc(node) else node
-        }
-    )
+    return HamtSparseNode(bitmap, storage.updateOffset(sparseOffset, node))
 }
 
-internal fun <E : Any> HamtFullNode<E>.updateOffset(
+inline internal fun <E : Any> HamtFullNode<E>.updateOffset(
     location: Int,
-    updateFunc: (HamtNode<E>) -> HamtNode<E>
+    node: HamtNode<E>
 ): HamtFullNode<E> {
-    if (location >= storage.size() || location < 0)
-        throw RuntimeException("storage doesn't contain requested offset: $location")
+//    if (location >= storage.size() || location < 0)
+//        throw RuntimeException("storage doesn't contain requested offset: $location")
 
-    return HamtFullNode(
-        storage.mapIndexed { index, node ->
-            if (index == location) updateFunc(node) else node
-        }
-    )
+    return HamtFullNode(storage.updateOffset(location, node))
 }
 
 internal fun <E : Any> HamtNode<E>.insert(
@@ -144,7 +134,12 @@ internal fun <E : Any> HamtNode<E>.insert(
             // We're inserting into a node where every position is already full,
             // so we'll need to copy everything in the array except for the
             // position where we'll need to do a recursive insert.
-            updateOffset(locationOffset) { it.insert(element, fullHash, offset + BITS_PER_LEVEL) }
+            updateOffset(locationOffset,
+                storage[locationOffset].insert(
+                    element,
+                    fullHash,
+                    offset + BITS_PER_LEVEL
+                ))
 
         is HamtSparseNode -> {
             // Three sub-cases:
@@ -160,7 +155,12 @@ internal fun <E : Any> HamtNode<E>.insert(
             val sparseOffset = sparseLocation(bitmap, locationOffset)
             if (sparseBitmapContains(bitmap, locationOffset)) {
                 // case 1
-                updateOffset(sparseOffset) { it.insert(element, fullHash, offset + BITS_PER_LEVEL) }
+                updateOffset(sparseOffset,
+                    storage[sparseOffset].insert(
+                        element,
+                        fullHash,
+                        offset + BITS_PER_LEVEL
+                    ))
             } else {
                 val newStorage = storage.insert(HamtLeafNodeOne(fullHash, element), sparseOffset)
 
@@ -237,7 +237,7 @@ internal fun <E : Any> HamtNode<E>.remove(
                     val newBitmap = locationBit.inv()
                     HamtSparseNode(newBitmap, newStorage)
                 }
-                else -> updateOffset(locationOffset) { newRemoveNode }
+                else -> updateOffset(locationOffset, newRemoveNode)
             }
         }
         is HamtSparseNode -> {
@@ -269,7 +269,7 @@ internal fun <E : Any> HamtNode<E>.remove(
                             ).normalize()
                         }
                     }
-                    else -> updateOffset(sparseOffset) { newRemoveNode }
+                    else -> updateOffset(sparseOffset, newRemoveNode)
                 }
             }
         }
@@ -321,7 +321,7 @@ internal fun <E : Any> HamtNode<E>.update(
         if (updateResult === storage[locationOffset])
             this
         else
-            updateOffset(locationOffset) { updateResult }
+            updateOffset(locationOffset, updateResult)
     }
     is HamtSparseNode -> {
         val locationOffset = ((fullHash shr offset) and LEVEL_MASK).toInt()
@@ -334,7 +334,7 @@ internal fun <E : Any> HamtNode<E>.update(
             if (updateResult === storage[sparseOffset])
                 this
             else
-                updateOffset(sparseOffset) { updateResult }
+                updateOffset(sparseOffset, updateResult)
         }
     }
 }
@@ -385,8 +385,7 @@ internal fun <E : Any> HamtNode<E>.iterator() = storageSequence().flatMap { it }
 internal fun <E : Any> HamtNode<E>.debugPrint(depth: Int = 0) {
     val whitespace = " ".repeat(depth * 2)
     when (this) {
-        is HamtEmptyNode -> {
-        }
+        is HamtEmptyNode -> { }
         is HamtLeafNodeOne -> println("%s| leaf: %s".format(whitespace, contents.toString()))
         is HamtLeafNodeMany -> println(
             "%s| leaf: %s".format(

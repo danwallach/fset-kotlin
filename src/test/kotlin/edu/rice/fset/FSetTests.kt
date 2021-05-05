@@ -10,7 +10,6 @@ import io.kotest.property.arbitrary.int
 import io.kotest.property.arbitrary.list
 import io.kotest.property.arbitrary.next
 import io.kotest.property.checkAll
-import java.util.Comparator
 
 data class IntWithLameHash(val element: Int) {
     // Exercises that our set implementations still work as sets, even when the underlying
@@ -57,7 +56,12 @@ internal fun fsetTests(
                 val expectedSize = inputs.toSet().size
                 val actualSize = testMe.size
                 if (actualSize != expectedSize) {
-                    println("expected: ${inputs.toSet().sortedWith(compareBy<IntWithLameHash> { it.hashCode() }.thenBy { it.element })}")
+                    println(
+                        "expected: ${
+                        inputs.toSet()
+                            .sortedWith(compareBy<IntWithLameHash> { it.hashCode() }.thenBy { it.element })
+                        }"
+                    )
                     println("actual:")
                     testMe.debugPrint()
                 }

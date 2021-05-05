@@ -329,9 +329,18 @@ internal data class BinaryChoiceTreeSet<E : Any>(val tree: BinaryChoiceTree<E>) 
     }
 }
 
+/**
+ * Gets an empty functional set, backed by a binary choice tree.
+ */
 fun <E : Any> emptyBinaryChoiceTreeSet(): FSet<E> = BinaryChoiceTreeSet(emptyBinaryChoiceTree())
 
+/**
+ * Builds a functional set, backed by a binary choice tree, of the given elements.
+ */
 fun <E : Any> binaryChoiceTreeSetOf(vararg elements: E) =
     elements.asIterable().toBinaryChoiceTreeSet()
 
+/**
+ * Converts any iterable to a functional set, backed by a binary choice tree.
+ */
 fun <E : Any> Iterable<E>.toBinaryChoiceTreeSet() = emptyBinaryChoiceTreeSet<E>().addAll(this)

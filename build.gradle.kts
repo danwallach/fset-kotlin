@@ -1,16 +1,8 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
 plugins {
     kotlin("jvm") version "1.5.0"
-    id("org.jlleitschuh.gradle.ktlint") version "10.0.0"
-}
-
-// ...
-tasks.withType<KotlinCompile>().configureEach {
-    kotlinOptions {
-        useIR = true
-    }
+//    id("com.diffplug.spotless") version "5.12.4"
 }
 
 group = "edu.rice.fset"
@@ -43,16 +35,9 @@ compileKotlin.kotlinOptions {
     apiVersion = "1.5"
 }
 
-ktlint {
-    verbose.set(true)
-    outputToConsole.set(true)
-    coloredOutput.set(true)
-    reporters {
-        reporter(ReporterType.CHECKSTYLE)
-        reporter(ReporterType.JSON)
-        reporter(ReporterType.HTML)
-    }
-    filter {
-        exclude("**/style-violations.kt")
-    }
-}
+//configure<com.diffplug.gradle.spotless.SpotlessExtension> {
+//    kotlin {
+//        // by default the target is every '.kt' and '.kts` file in the java sourcesets
+//        ktlint()
+//    }
+//}

@@ -1,5 +1,12 @@
 package edu.rice.fset
 
+/**
+ * The ArrayStore value class is a wrapper around basic Java arrays that adds
+ * all the functionality that we need in HAMTs and elsewhere. By having all
+ * the logic here, the HAMT code gets cleaner. By using a "value class", no
+ * extra memory is allocated to use an ArrayStore, yielding a significant
+ * speedup relative to ArrayList (maybe 2x).
+ */
 @JvmInline
 internal value class ArrayStore<E : Any>(val contents: Array<Any>)
 
@@ -82,6 +89,19 @@ internal fun <E : Any> ArrayStore<E>.updateElement(element: E): ArrayStore<E> {
     return if (updated) ArrayStore(newArray as Array<Any>) else this
 }
 
+@Suppress("UNCHECKED_CAST")
+inline internal fun <E : Any> ArrayStore<E>.updateOffset(offset: Int, element: E): ArrayStore<E> {
+    val newArray = arrayOfNulls<Any>(contents.size)
+    for (i in 0 until contents.size) {
+        newArray[i] = if (i == offset) {
+            element
+        } else {
+            contents[i]
+        }
+    }
+    return ArrayStore(newArray as Array<Any>)
+}
+
 internal operator fun <E : Any> ArrayStore<E>.contains(element: E) = contents.contains(element)
 
 internal fun <E : Any> ArrayStore<E>.find(element: E): E? {
@@ -144,6 +164,7 @@ internal fun <E : Any> arrayStoreOne(element: E): ArrayStore<E> {
     newArray[0] = element
     return ArrayStore(newArray as Array<Any>)
 }
+
 @Suppress("UNCHECKED_CAST")
 internal fun <E : Any> arrayStoreTwo(e0: E, e1: E): ArrayStore<E> {
     val newArray = arrayOfNulls<Any>(2)

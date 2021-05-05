@@ -50,7 +50,7 @@ class BinaryChoiceSpecificTreeTests : FreeSpec({
         // now we've chosen something where the "power of choices" should send it to the left
         // rather than to the right
         val v5 = 5
-        val h5 = v5.familyHash2() // h5 = [1_818_932_775, -1_044_378_663]
+//        val h5 = v5.familyHash2() // h5 = [1_818_932_775, -1_044_378_663]
         val t5 = t3.insert(v5)
 
         (t5 as BinaryChoiceTreeNode).storage.hashValue shouldBe 363786555

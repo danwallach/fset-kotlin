@@ -21,15 +21,15 @@ internal fun benchmark(name: String, size: Int, offsets: List<Int>, emptyIntSet:
             val bigSet1 = emptyIntSet.addAll((offset + 1)..(offset + size))
             println("START")
 //            bigSet1.debugPrint()
-            println(bigSet1.statistics())
+//            println(bigSet1.statistics())
             val bigSet2 = bigSet1.removeAll((offset + 1)..(offset + size / 2))
             println("REMOVE")
 //            bigSet2.debugPrint()
-            println(bigSet2.statistics())
+//            println(bigSet2.statistics())
             val bigSet3 = bigSet2.addAll((offset + 1)..(offset + size * 2))
             println("ADD")
 //            bigSet3.debugPrint()
-            println(bigSet3.statistics())
+//            println(bigSet3.statistics())
             val bigSet4 = bigSet3.removeAll((offset + 1)..(offset + size * 2) step 2)
             println("REMOVE AGAIN")
 //            bigSet4.debugPrint()
@@ -38,9 +38,9 @@ internal fun benchmark(name: String, size: Int, offsets: List<Int>, emptyIntSet:
 //                ((offset + 1)..(offset + size * 2) step 3).map { bigSet4.lookup(it) ?: 0 }.sum()
 //            bigSet.debugPrint()
 
-            val stats4 = bigSet4.statistics()
-            println(stats4)
-            stats4
+//            val stats4 = bigSet4.statistics()
+//            println(stats4)
+            "DONE"
         }
     }.toList()
     println(" Done.")
@@ -55,7 +55,7 @@ internal fun benchmark(name: String, size: Int, offsets: List<Int>, emptyIntSet:
 }
 
 fun main() {
-    val size = 40000
+    val size = 400000
     val iterations = 1
     val offsets = generateSequence {
         Random.nextInt(Short.MAX_VALUE.toInt())
