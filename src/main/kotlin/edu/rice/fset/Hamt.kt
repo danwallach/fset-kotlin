@@ -8,10 +8,6 @@ internal data class HamtSparseNode<E : Any>(
     val storage: ArrayStore<HamtNode<E>>
 ) : HamtNode<E>
 
-// If we end up in the case where every bit is full, then we'll simplify to just the
-// array and nothing else.
-internal data class HamtFullNode<E : Any>(val storage: ArrayStore<HamtNode<E>>) : HamtNode<E>
-
 // Common case: storage of a singleton at an HAMT leaf.
 internal data class HamtLeafNodeOne<E : Any>(val hash: UInt, val contents: E) : HamtNode<E>
 
@@ -96,16 +92,6 @@ internal fun <E : Any> HamtSparseNode<E>.updateOffset(
     return HamtSparseNode(bitmap, storage.updateOffset(sparseOffset, node))
 }
 
-internal fun <E : Any> HamtFullNode<E>.updateOffset(
-    location: Int,
-    node: HamtNode<E>
-): HamtFullNode<E> {
-//    if (location >= storage.size() || location < 0)
-//        throw RuntimeException("storage doesn't contain requested offset: $location")
-
-    return HamtFullNode(storage.updateOffset(location, node))
-}
-
 internal fun <E : Any> HamtNode<E>.insert(
     element: E,
     fullHash: UInt,
@@ -141,18 +127,6 @@ internal fun <E : Any> HamtNode<E>.insert(
                 upgradeToSparse(offset).insert(element, fullHash, offset)
             }
         }
-        is HamtFullNode ->
-            // We're inserting into a node where every position is already full,
-            // so we'll need to copy everything in the array except for the
-            // position where we'll need to do a recursive insert.
-            updateOffset(
-                locationOffset,
-                storage[locationOffset].insert(
-                    element,
-                    fullHash,
-                    offset + BITS_PER_LEVEL
-                )
-            )
 
         is HamtSparseNode -> {
             // Three sub-cases:
@@ -178,12 +152,7 @@ internal fun <E : Any> HamtNode<E>.insert(
                 )
             } else {
                 val newStorage = storage.insert(HamtLeafNodeOne(fullHash, element), sparseOffset)
-
-                if (newStorage.size() == MAX_STORAGE_SLOTS) {
-                    HamtFullNode(newStorage)
-                } else {
-                    HamtSparseNode(bitmap or locationBit, newStorage)
-                }
+                HamtSparseNode(bitmap or locationBit, newStorage)
             }
         }
     }
@@ -233,28 +202,6 @@ internal fun <E : Any> HamtNode<E>.remove(
                 this
             }
         }
-        is HamtFullNode -> {
-            // We're removing from a node where every position is already full,
-            // so recursion is going to happen. So many cases!
-            // 1) We get back what was already there, so nothing changed.
-            // 2) If we get back an empty node, then we need to build a sparse node.
-            // 3) Otherwise, we're just replacing what we've already got in the same slot.
-            //    so we'll need to copy everything in the array except for the
-            //    position where we'll need to place the result.
-
-            val removeNode = storage[locationOffset]
-            val newRemoveNode = removeNode.remove(element, fullHash, offset + BITS_PER_LEVEL)
-
-            when {
-                newRemoveNode === removeNode -> this // nothing changed!
-                newRemoveNode is HamtEmptyNode -> {
-                    val newStorage = storage.withoutIndex(locationOffset)
-                    val newBitmap = locationBit.inv()
-                    HamtSparseNode(newBitmap, newStorage)
-                }
-                else -> updateOffset(locationOffset, newRemoveNode)
-            }
-        }
         is HamtSparseNode -> {
             // We're removing from a node where we have some but not all positions full,
             // so we have many, many cases.
@@ -296,10 +243,6 @@ internal fun <E : Any> HamtNode<E>.lookup(element: E, fullHash: UInt, offset: In
         is HamtEmptyNode -> null // shouldn't ever happen
         is HamtLeafNodeOne -> if (this.hash == fullHash && contents == element) contents else null
         is HamtLeafNodeMany -> if (this.hash == fullHash) contents.find(element) else null
-        is HamtFullNode -> {
-            val locationOffset = ((fullHash shr offset) and LEVEL_MASK).toInt()
-            storage[locationOffset].lookup(element, fullHash, offset + BITS_PER_LEVEL)
-        }
         is HamtSparseNode -> {
             val locationOffset = ((fullHash shr offset) and LEVEL_MASK).toInt()
             if (!sparseBitmapContains(bitmap, locationOffset)) {
@@ -326,18 +269,6 @@ internal fun <E : Any> HamtNode<E>.update(
             HamtLeafNodeMany(hash, contents.updateElement(element))
         else
             this
-    is HamtFullNode -> {
-        val locationOffset = ((fullHash shr offset) and LEVEL_MASK).toInt()
-        val updateResult = storage[locationOffset].update(
-            element,
-            fullHash,
-            offset + BITS_PER_LEVEL
-        )
-        if (updateResult === storage[locationOffset])
-            this
-        else
-            updateOffset(locationOffset, updateResult)
-    }
     is HamtSparseNode -> {
         val locationOffset = ((fullHash shr offset) and LEVEL_MASK).toInt()
         if (!sparseBitmapContains(bitmap, locationOffset)) {
@@ -359,7 +290,6 @@ internal fun <E : Any> HamtNode<E>.storageSequence(): Sequence<Set<E>> = when (t
     is HamtLeafNodeOne -> sequenceOf(setOf(contents))
     is HamtLeafNodeMany -> sequenceOf(contents.toSet())
     is HamtSparseNode -> storage.asSequence().flatMap { it.storageSequence() }
-    is HamtFullNode -> storage.asSequence().flatMap { it.storageSequence() }
 }
 
 internal fun <E1 : Any, E2 : Any> equality(tree1: HamtNode<E1>, tree2: HamtNode<E2>): Boolean {
@@ -378,7 +308,6 @@ internal fun <E : Any> HamtNode<E>.nodeDepths(priorDepth: Int = 1): Sequence<Int
     is HamtLeafNodeOne -> sequenceOf(priorDepth)
     is HamtLeafNodeMany -> sequenceOf(priorDepth) // we're counting multiple values with identical hashes as if one
     is HamtSparseNode -> storage.flatMap { it.nodeDepths(priorDepth + 1) }
-    is HamtFullNode -> storage.flatMap { it.nodeDepths(priorDepth + 1) }
 }
 
 internal fun <E : Any> HamtNode<E>.nodeOccupancies(): Sequence<Int> = when (this) {
@@ -386,10 +315,6 @@ internal fun <E : Any> HamtNode<E>.nodeOccupancies(): Sequence<Int> = when (this
     is HamtLeafNodeOne -> emptySequence() // we're not super interested in leaf occupancy for this measure
     is HamtLeafNodeMany -> emptySequence()
     is HamtSparseNode -> sequence {
-        yield(storage.size())
-        yieldAll(storage.flatMap { it.nodeOccupancies() })
-    }
-    is HamtFullNode -> sequence {
         yield(storage.size())
         yieldAll(storage.flatMap { it.nodeOccupancies() })
     }
@@ -417,10 +342,6 @@ internal fun <E : Any> HamtNode<E>.debugPrint(depth: Int = 0) {
                     bitmap.countOneBits()
                 )
             )
-            storage.forEach { it.debugPrint(depth + 1) }
-        }
-        is HamtFullNode -> {
-            println("%s| full".format(whitespace))
             storage.forEach { it.debugPrint(depth + 1) }
         }
     }
