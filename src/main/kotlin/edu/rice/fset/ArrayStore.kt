@@ -42,8 +42,12 @@ internal fun <E : Any> ArrayStore<E>.withoutIndex(index: Int): ArrayStore<E> {
 internal operator fun <E : Any> ArrayStore<E>.get(index: Int): E = contents[index] as E
 
 @Suppress("UNCHECKED_CAST")
+internal inline fun <reified E: Any> ArrayStore<Any>.getAs(index: Int): E =
+    this[index] as E
+
+@Suppress("UNCHECKED_CAST")
 internal fun <E : Any> ArrayStore<E>.withoutElement(element: E): ArrayStore<E> =
-    // we'll only remove the first occurance
+    // we'll only remove the first occurrence
     if (contains(element)) {
         val newArray = arrayOfNulls<Any>(contents.size - 1)
         var i: Int = 0
@@ -66,9 +70,13 @@ internal fun <E : Any> ArrayStore<E>.withoutElement(element: E): ArrayStore<E> =
     }
 
 @Suppress("UNCHECKED_CAST")
+internal inline fun <E : Any, reified E2: Any> ArrayStore<E>.updateElementAs(element: E2): ArrayStore<E> =
+    updateElement(element as E)
+
+@Suppress("UNCHECKED_CAST")
 internal fun <E : Any> ArrayStore<E>.updateElement(element: E): ArrayStore<E> {
     var updated: Boolean = false
-    // we'll only update the first occurance
+    // we'll only update the first occurrence
     val newArray = arrayOfNulls<Any>(contents.size)
     var i: Int = 0
     loop1@ while (i < contents.size) {
@@ -91,6 +99,19 @@ internal fun <E : Any> ArrayStore<E>.updateElement(element: E): ArrayStore<E> {
 
 @Suppress("UNCHECKED_CAST")
 internal fun <E : Any> ArrayStore<E>.updateOffset(offset: Int, element: E): ArrayStore<E> {
+    val newArray = arrayOfNulls<Any>(contents.size)
+    for (i in 0 until contents.size) {
+        newArray[i] = if (i == offset) {
+            element
+        } else {
+            contents[i]
+        }
+    }
+    return ArrayStore(newArray as Array<Any>)
+}
+
+@Suppress("UNCHECKED_CAST")
+internal fun <E : Any, E2: Any> ArrayStore<E>.updateOffsetAs(offset: Int, element: E2): ArrayStore<E> {
     val newArray = arrayOfNulls<Any>(contents.size)
     for (i in 0 until contents.size) {
         newArray[i] = if (i == offset) {
@@ -164,6 +185,11 @@ internal fun <E : Any> arrayStoreOne(element: E): ArrayStore<E> {
     newArray[0] = element
     return ArrayStore(newArray as Array<Any>)
 }
+
+@Suppress("UNCHECKED_CAST")
+internal inline fun <reified E : Any> arrayStoreOneAs(element: Any): ArrayStore<E> =
+    arrayStoreOne(element) as ArrayStore<E>
+
 
 @Suppress("UNCHECKED_CAST")
 internal fun <E : Any> arrayStoreTwo(e0: E, e1: E): ArrayStore<E> {
