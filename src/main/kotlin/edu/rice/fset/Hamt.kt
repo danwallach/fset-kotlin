@@ -177,7 +177,7 @@ internal fun <E : Any> HamtNode<E>.remove(
 
     return when (this) {
         is HamtEmptyNode -> this // nothing to remove!
-        is HamtLeafNodeOne -> if (hash == fullHash) {
+        is HamtLeafNodeOne -> if (hash == fullHash && contents.equals(element)) {
             emptyHamtNode()
         } else {
             this // nothing to remove!

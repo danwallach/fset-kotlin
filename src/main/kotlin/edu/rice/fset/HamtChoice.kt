@@ -33,7 +33,7 @@ internal fun <E1 : Any, E2 : Any> equalityChoice(tree1: HamtSet<E1>, tree2: Hamt
 
     tree1.iterator().forEach { hset1.add(it) }
     tree2.iterator().forEach { hset2.add(it) }
-    return hset1.containsAll(hset2) && hset2.containsAll(hset1) // does == work or not?
+    return hset1 == hset2
 }
 
 internal fun <E : Any> HamtNode<E>.lookupChoice(element: E): E? {
@@ -54,7 +54,7 @@ internal fun <E : Any> HamtNode<E>.insertChoice(element: E): HamtNode<E> {
     val prefHash = (if (cost0 < cost1) hashes[0] else hashes[1]).toUInt()
     val worseHash = (if (cost0 < cost1) hashes[1] else hashes[0]).toUInt()
 
-    return if(lookup(element, worseHash) != null) {
+    return if (lookup(element, worseHash) != null) {
         insert(element, worseHash)
     } else {
         insert(element, prefHash)
@@ -72,11 +72,11 @@ internal fun <E : Any> HamtNode<E>.updateChoice(element: E): HamtNode<E> {
 
 internal fun <E : Any> HamtNode<E>.removeChoice(element: E): HamtNode<E> {
     val hashes = element.familyHash2()
-    val result0 = remove(element, fullHash = hashes[0].toUInt())
+    val result0 = remove(element, hashes[0].toUInt())
     if (result0 !== this) {
         return result0
     }
-    val result1 = result0.remove(element, fullHash = hashes[1].toUInt())
+    val result1 = result0.remove(element, hashes[1].toUInt())
     return result1
 }
 

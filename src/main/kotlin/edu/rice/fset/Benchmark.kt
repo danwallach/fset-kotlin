@@ -19,19 +19,19 @@ internal fun benchmark(name: String, size: Int, offsets: List<Int>, emptyIntSet:
         measure {
             print(".")
             val bigSet1 = emptyIntSet.addAll((offset + 1)..(offset + size))
-            println("START")
+//            println("START")
 //            bigSet1.debugPrint()
 //            println(bigSet1.statistics())
             val bigSet2 = bigSet1.removeAll((offset + 1)..(offset + size / 2))
-            println("REMOVE")
+//            println("REMOVE")
 //            bigSet2.debugPrint()
 //            println(bigSet2.statistics())
             val bigSet3 = bigSet2.addAll((offset + 1)..(offset + size * 2))
-            println("ADD")
+//            println("ADD")
 //            bigSet3.debugPrint()
 //            println(bigSet3.statistics())
             val bigSet4 = bigSet3.removeAll((offset + 1)..(offset + size * 2) step 2)
-            println("REMOVE AGAIN")
+//            println("REMOVE AGAIN")
 //            bigSet4.debugPrint()
 
 //            val ignored =
@@ -40,6 +40,7 @@ internal fun benchmark(name: String, size: Int, offsets: List<Int>, emptyIntSet:
 
 //            val stats4 = bigSet4.statistics()
 //            println(stats4)
+//            stats4
             "DONE"
         }
     }.toList()
@@ -55,15 +56,16 @@ internal fun benchmark(name: String, size: Int, offsets: List<Int>, emptyIntSet:
 }
 
 fun main() {
-    val size = 400000
-    val iterations = 1
+    val size = 40000
+    val iterations = 10
     val offsets = generateSequence {
         Random.nextInt(Short.MAX_VALUE.toInt())
     }.take(iterations).toList()
 //    benchmark("Binary Tree", size, offsets, emptyBinaryTreeSet())
 //    benchmark("Binary Choice", size, offsets, emptyBinaryChoiceTreeSet())
 //    benchmark("Treap", size, offsets, emptyTreapSet())
-//    benchmark("HAMT", size, offsets, emptyHamtSet())
-    benchmark("HAMT", size * 10, offsets, emptyHamtSet())
-//    benchmark("Treap", size * 10, offsets, emptyTreapSet())
+    benchmark("HAMT", size, offsets, emptyHamtSet())
+    benchmark("HAMT Choice", size, offsets, emptyHamtChoiceSet())
+    benchmark("HAMT", size * 5, offsets, emptyHamtSet())
+    benchmark("HAMT Choice", size * 5, offsets, emptyHamtChoiceSet())
 }
