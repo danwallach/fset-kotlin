@@ -27,7 +27,7 @@ val intWithLameHashGen = arbitrary { rs ->
 }
 
 val listIntWithLameHashGen = arbitrary { rs ->
-    Arb.list(intWithLameHashGen).next(rs)
+    Arb.list(intWithLameHashGen, 1..10).next(rs)
 }
 
 fun <E : Any> setsEqual(a: Set<E>, b: Set<E>): Boolean = a.containsAll(b) && b.containsAll(a)

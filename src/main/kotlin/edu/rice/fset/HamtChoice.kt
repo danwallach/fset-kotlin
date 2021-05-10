@@ -49,10 +49,16 @@ internal fun <E : Any> HamtNode<E>.lookupChoice(element: E): E? {
 
 internal fun <E : Any> HamtNode<E>.insertChoice(element: E): HamtNode<E> {
     val hashes = element.familyHash2()
-    val depth0 = insertionCost(hashes[0].toUInt())
-    val depth1 = insertionCost(hashes[1].toUInt())
+    val cost0 = insertionCost(hashes[0].toUInt())
+    val cost1 = insertionCost(hashes[1].toUInt())
+    val prefHash = (if (cost0 < cost1) hashes[0] else hashes[1]).toUInt()
+    val worseHash = (if (cost0 < cost1) hashes[1] else hashes[0]).toUInt()
 
-    return insert(element, fullHash = hashes[if (depth0 < depth1) 0 else 1].toUInt())
+    return if(lookup(element, worseHash) != null) {
+        insert(element, worseHash)
+    } else {
+        insert(element, prefHash)
+    }
 }
 
 internal fun <E : Any> HamtNode<E>.updateChoice(element: E): HamtNode<E> {
