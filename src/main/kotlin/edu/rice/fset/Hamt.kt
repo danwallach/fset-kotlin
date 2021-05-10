@@ -347,7 +347,7 @@ internal fun <E : Any> HamtNode<E>.debugPrint(depth: Int = 0) {
     }
 }
 
-internal data class HamtSet<E : Any>(val tree: HamtNode<E>) : FSet<E> {
+internal open class HamtSet<E : Any>(val tree: HamtNode<E>) : FSet<E> {
     override val size: Int
         get() = tree.storageSequence().fold(0) { sum, s -> sum + s.size }
 

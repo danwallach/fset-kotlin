@@ -42,3 +42,7 @@ class HamtTests : FreeSpec({
 class HamtCommonTests : FreeSpec({
     include(fsetTests("HAMT", emptyHamtSet(), emptyHamtSet(), emptyHamtSet()))
 })
+
+class HamtChoiceCommonTests : FreeSpec({
+    include(fsetTests("HAMT Choice", emptyHamtChoiceSet(), emptyHamtChoiceSet(), emptyHamtChoiceSet()))
+})
