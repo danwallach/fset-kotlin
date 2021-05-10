@@ -98,7 +98,8 @@ internal fun fsetTests(
                 // run faster.)
 
                 if (inputs.contains(other)) {
-                    setsEqual(testMe, testMePlus) shouldBe true
+                    val setsE = setsEqual(testMe, testMePlus)
+                    setsE shouldBe true
                     testMe shouldBe testMePlus
                     val testMeHash = testMe.hashCode()
                     val testMePlusHash = testMePlus.hashCode()
@@ -113,7 +114,8 @@ internal fun fsetTests(
                     setsEqual(testMe, testMinus) shouldBe false
                     testMe shouldNotBe testMinus
                 } else {
-                    setsEqual(testMe, testMinus) shouldBe true
+                    val setsE = setsEqual(testMe, testMinus)
+                    setsE shouldBe true
                     testMe shouldBe testMinus
                     val testMeHash = testMe.hashCode()
                     val testMinusHash = testMinus.hashCode()

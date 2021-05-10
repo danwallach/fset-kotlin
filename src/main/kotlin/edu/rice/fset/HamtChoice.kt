@@ -28,12 +28,12 @@ internal fun <E1 : Any, E2 : Any> equalityChoice(tree1: HamtSet<E1>, tree2: Hamt
 
     // Temporary solution: dump them into a Kotlin (Java) HashSet and let that
     // figure it out.
-    val hset1 = kotlin.collections.hashSetOf<E1>()
-    val hset2 = kotlin.collections.hashSetOf<E2>()
+    val hset1 = kotlin.collections.hashSetOf<Any>()
+    val hset2 = kotlin.collections.hashSetOf<Any>()
 
     tree1.iterator().forEach { hset1.add(it) }
     tree2.iterator().forEach { hset2.add(it) }
-    return tree1 == tree2
+    return hset1.containsAll(hset2) && hset2.containsAll(hset1) // does == work or not?
 }
 
 internal fun <E : Any> HamtNode<E>.lookupChoice(element: E): E? {
@@ -76,7 +76,7 @@ internal fun <E : Any> HamtNode<E>.removeChoice(element: E): HamtNode<E> {
     if (result0 !== this) {
         return result0
     }
-    val result1 = result0.remove(element, fullHash = hashes[0].toUInt())
+    val result1 = result0.remove(element, fullHash = hashes[1].toUInt())
     return result1
 }
 
